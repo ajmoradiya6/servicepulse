@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { Bell, Settings, Moon, Sun, Activity } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
-import { ProcessMetrics } from "@/components/ui/metrics/ProcessMetrics"
 import { LogsSection } from "@/components/ui/logs/LogsSection"
 import { SettingsPanel } from "@/components/ui/settings/SettingsPanel"
 import { useToast } from "@/hooks/use-toast"
@@ -18,28 +17,14 @@ export default function Dashboard() {
   const { theme, setTheme } = useTheme()
   const [selectedService, setSelectedService] = useState('service1')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const { toast } = useToast()
   const { data: realtimeData, status: socketStatus, error: socketError } = useMetricsSocket(selectedService)
+  const { toast } = useToast()
 
   const services = [
     { id: 'service1', name: 'Authentication Service', status: 'running' },
     { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
     { id: 'service3', name: 'Data Processing Service', status: 'running' }
   ]
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Simulate health check
-      if (Math.random() > 0.8) {
-        toast({
-          title: "Service Alert",
-          description: "High CPU usage detected",
-          variant: "warning",
-        })
-      }
-    }, 30000)
-    return () => clearInterval(interval)
-  }, [])
 
   useEffect(() => {
     if (socketError) {
@@ -75,7 +60,6 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        {/* Header */}
         <header className="border-b bg-card p-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
@@ -103,7 +87,6 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Service Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
             <Card className="p-4">
               <h3 className="font-medium mb-2">Status</h3>
@@ -135,21 +118,15 @@ export default function Dashboard() {
           </div>
         </header>
 
-        {/* Dashboard Content */}
         <div className="p-6">
           <Tabs defaultValue="metrics" className="space-y-4">
             <TabsList>
               <TabsTrigger value="metrics">Metrics</TabsTrigger>
-              <TabsTrigger value="processes">Processes</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="metrics">
               <ServiceMetrics data={realtimeData} status={socketStatus} />
-            </TabsContent>
-
-            <TabsContent value="processes">
-              <ProcessMetrics data={realtimeData} />
             </TabsContent>
 
             <TabsContent value="logs">
