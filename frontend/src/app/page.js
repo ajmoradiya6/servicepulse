@@ -28,15 +28,16 @@ export default function Dashboard() {
     status: socketStatus, 
     error: socketError,
     latestMetrics,
-    logs 
+    logs,
+    serviceStatuses 
   } = useMetricsSocket(selectedService, settings)
 
   const { toast } = useToast()
 
   const services = [
-    { id: 'service1', name: 'Authentication Service', status: 'running' },
-    { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
-    { id: 'service3', name: 'Data Processing Service', status: 'running' }
+    { id: 'service1', name: 'Authentication Service', status: serviceStatuses.service1 },
+    { id: 'service2', name: 'Payment Gateway', status: serviceStatuses.service2 },
+    { id: 'service3', name: 'Data Processing Service', status: serviceStatuses.service3 }
   ]
 
   useEffect(() => {
