@@ -30,7 +30,8 @@ export default function Dashboard() {
     error: socketError,
     latestMetrics,
     logs,
-    serviceStatuses 
+    serviceStatuses,
+    isConnecting
   } = useMetricsSocket(selectedService, settings)
 
   const { toast } = useToast()
@@ -65,7 +66,11 @@ export default function Dashboard() {
               onClick={() => setSelectedService(service.id)}
             >
               <div className={`w-2 h-2 rounded-full mr-2 ${
-                service.status === 'running' ? 'bg-green-500' : 'bg-red-500'
+                isConnecting && service.id === selectedService
+                  ? 'bg-yellow-500 animate-pulse'
+                  : service.status === 'running'
+                  ? 'bg-green-500'
+                  : 'bg-red-500'
               }`} />
               {service.name}
             </Button>
@@ -107,27 +112,31 @@ export default function Dashboard() {
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${
-                  serviceStatus === 'running' ? 'bg-green-500' : 'bg-red-500'
+                  isConnecting 
+                    ? 'bg-yellow-500 animate-pulse' 
+                    : serviceStatus === 'running'
+                    ? 'bg-green-500'
+                    : 'bg-red-500'
                 }`} />
-                {serviceStatus === 'running' ? 'Running' : 'Stopped'}
+                {isConnecting ? 'Connecting' : serviceStatus === 'running' ? 'Running' : 'Stopped'}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics.memory?.toFixed(1)}%
+                {isConnecting ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics.cpu?.toFixed(1)}%
+                {isConnecting ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics.activeConnections}
+                {isConnecting ? '-' : latestMetrics?.activeConnections}
               </div>
             </Card>
           </div>

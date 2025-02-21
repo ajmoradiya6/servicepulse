@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
-  const [connectionStatus, setConnectionStatus] = useState('connected') // Changed default to connected
+  const [connectionStatus, setConnectionStatus] = useState('connecting') // Start with connecting
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
   const serviceDataRef = useRef({})
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
   
-  // Track service statuses separately
   const [serviceStatuses, setServiceStatuses] = useState({
     service1: 'running',
     service2: 'running',
@@ -18,7 +18,6 @@ export function useMetricsSocket(serviceId, settings) {
   })
 
   const generateServiceStatus = useCallback((currentStatus) => {
-    // 95% chance to keep current status, 5% chance to change
     if (Math.random() > 0.95) {
       return currentStatus === 'running' ? 'stopped' : 'running'
     }
@@ -59,25 +58,7 @@ export function useMetricsSocket(serviceId, settings) {
     message: `Service ${serviceId} ${Math.random() > 0.5 ? 'running normally' : 'processing requests'}`
   }), [serviceId])
 
-  // Update service statuses periodically
-  useEffect(() => {
-    const updateStatuses = () => {
-      setServiceStatuses(prev => ({
-        service1: generateServiceStatus(prev.service1),
-        service2: generateServiceStatus(prev.service2),
-        service3: generateServiceStatus(prev.service3)
-      }))
-    }
-
-    // Initial update
-    updateStatuses()
-
-    const interval = setInterval(updateStatuses, 10000) // Update every 10 seconds
-
-    return () => clearInterval(interval)
-  }, [generateServiceStatus])
-
-  // Main update effect
+  // Main update effect with initial delay
   useEffect(() => {
     let interval
     
@@ -100,6 +81,7 @@ export function useMetricsSocket(serviceId, settings) {
       setLogs(serviceDataRef.current[serviceId].logs)
       setData(serviceDataRef.current[serviceId].metrics)
       setConnectionStatus('connected')
+      setIsInitialLoad(false)
 
       // Add service-specific logs based on status changes
       if (serviceStatuses[serviceId] === 'stopped') {
@@ -112,26 +94,54 @@ export function useMetricsSocket(serviceId, settings) {
       }
     }
 
-    // Initial update
-    updateData()
+    // Show connecting state for 1 second on initial load
+    if (isInitialLoad) {
+      setConnectionStatus('connecting')
+      const timeout = setTimeout(() => {
+        updateData()
+      }, 1000)
+      return () => clearTimeout(timeout)
+    }
 
-    // Set up interval if realtime is enabled
+    // Regular updates
     if (settings.realtime) {
+      updateData() // Immediate update after initial load
       interval = setInterval(updateData, settings.interval * 1000)
     }
 
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, serviceStatuses])
+  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, isInitialLoad, serviceStatuses])
+
+  // Reset to connecting state when service changes
+  useEffect(() => {
+    setConnectionStatus('connecting')
+    setIsInitialLoad(true)
+  }, [serviceId])
+
+  // Update service statuses periodically
+  useEffect(() => {
+    const updateStatuses = () => {
+      setServiceStatuses(prev => ({
+        service1: generateServiceStatus(prev.service1),
+        service2: generateServiceStatus(prev.service2),
+        service3: generateServiceStatus(prev.service3)
+      }))
+    }
+
+    const interval = setInterval(updateStatuses, 10000)
+    return () => clearInterval(interval)
+  }, [generateServiceStatus])
 
   return { 
     data, 
-    status: connectionStatus, // Return connection status for grid
-    serviceStatus: serviceStatuses[serviceId], // Return specific service status
+    status: connectionStatus,
+    serviceStatus: serviceStatuses[serviceId],
     error,
     latestMetrics,
     logs,
-    serviceStatuses // Return all service statuses
+    serviceStatuses,
+    isConnecting: connectionStatus === 'connecting'
   }
 }
