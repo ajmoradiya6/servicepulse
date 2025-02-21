@@ -4,7 +4,6 @@ import { useEffect, useRef } from 'react'
 import { Card } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { format } from 'date-fns'
 
 export function LogsSection({ logs = [], autoScroll = true }) {
@@ -41,7 +40,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
           {logs.map((log) => (
             <div
               key={log.id}
-              className={`p-3 border rounded-lg ${getLogColor(log.level)}`}
+              className={`p-3 border rounded-lg ${getLogColor(log.level)} animate-fadeIn`}
             >
               <div className="flex items-center justify-between mb-1">
                 <Badge variant="outline" className={getLogColor(log.level)}>

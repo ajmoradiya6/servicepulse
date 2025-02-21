@@ -27,7 +27,8 @@ export default function Dashboard() {
     data: realtimeData, 
     status: socketStatus, 
     error: socketError,
-    latestMetrics 
+    latestMetrics,
+    logs 
   } = useMetricsSocket(selectedService, settings)
 
   const { toast } = useToast()
@@ -143,7 +144,7 @@ export default function Dashboard() {
 
             <TabsContent value="logs">
               <LogsSection 
-                logs={realtimeData?.metrics?.logs} 
+                logs={logs} 
                 autoScroll={settings.logAutoScroll}
               />
             </TabsContent>
