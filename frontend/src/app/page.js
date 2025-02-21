@@ -1,178 +1,133 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useMetricsSocket } from "@/hooks/use-metrics-socket"
+import { Bell, Settings, Moon, Sun } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useTheme } from "next-themes"
 import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
 import { ProcessMetrics } from "@/components/ui/metrics/ProcessMetrics"
-import { MetricComparison } from "@/components/ui/metrics/MetricComparison"
-import { AlertsConfig } from "@/components/ui/metrics/AlertsConfig"
 import { LogsSection } from "@/components/ui/logs/LogsSection"
+import { SettingsPanel } from "@/components/ui/settings/SettingsPanel"
 import { useToast } from "@/hooks/use-toast"
-import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  Bell, Settings, Moon, Sun, Download, RefreshCw, 
-  Activity, Server, AlertTriangle, CheckCircle 
-} from 'lucide-react'
-import { useTheme } from "next-themes"
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme()
-  const { data: realtimeData, status: socketStatus } = useMetricsSocket('service1')
+  const [selectedService, setSelectedService] = useState('service1')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const { toast } = useToast()
-  const [showAlerts, setShowAlerts] = useState(false)
 
-  // Health status indicators
-  const healthStatus = {
-    cpu: realtimeData?.metrics?.cpu < 80 ? 'healthy' : 'warning',
-    memory: realtimeData?.metrics?.memory < 90 ? 'healthy' : 'critical',
-    disk: realtimeData?.metrics?.disk < 85 ? 'healthy' : 'warning',
-    network: realtimeData?.metrics?.network < 1000 ? 'healthy' : 'warning'
-  }
+  const services = [
+    { id: 'service1', name: 'Authentication Service', status: 'running' },
+    { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
+    { id: 'service3', name: 'Data Processing Service', status: 'running' }
+  ]
 
-  const StatusBadge = ({ status }) => {
-    const variants = {
-      healthy: { color: 'bg-green-500', text: 'Healthy' },
-      warning: { color: 'bg-yellow-500', text: 'Warning' },
-      critical: { color: 'bg-red-500', text: 'Critical' }
-    }
-    return (
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${variants[status].color}`} />
-        <span>{variants[status].text}</span>
-      </div>
-    )
-  }
-
-  const exportMetrics = () => {
-    // Placeholder for metrics export functionality
-    toast({
-      title: "Export Metrics",
-      description: "Metrics export functionality not yet implemented."
-    })
-  }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate health check
+      if (Math.random() > 0.8) {
+        toast({
+          title: "Service Alert",
+          description: "High CPU usage detected",
+          variant: "warning",
+        })
+      }
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center justify-between">
-          <h1 className="text-xl font-bold">Service Health Monitor</h1>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => setShowAlerts(true)}>
-              <Bell className="h-5 w-5" />
-              {healthStatus.cpu === 'critical' && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-              )}
+    <div className="flex h-screen bg-background">
+      {/* Sidebar */}
+      <div className="w-64 border-r bg-card p-4">
+        <h2 className="text-xl font-bold mb-4">Services</h2>
+        <div className="space-y-2">
+          {services.map((service) => (
+            <Button
+              key={service.id}
+              variant={selectedService === service.id ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setSelectedService(service.id)}
+            >
+              <div className={`w-2 h-2 rounded-full mr-2 ${
+                service.status === 'running' ? 'bg-green-500' : 'bg-red-500'
+              }`} />
+              {service.name}
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="border-b bg-card p-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Service Health Monitor</h1>
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon">
+                <Bell className="h-5 w-5" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+                <Settings className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
-        </div>
-      </header>
 
-      <main className="container py-6 space-y-8">
-        {/* Service Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">CPU Usage</p>
-                <h3 className="text-2xl font-bold">{realtimeData?.metrics?.cpu?.toFixed(1)}%</h3>
-              </div>
-              <StatusBadge status={healthStatus.cpu} />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Memory Usage</p>
-                <h3 className="text-2xl font-bold">{realtimeData?.metrics?.memory?.toFixed(1)}%</h3>
-              </div>
-              <StatusBadge status={healthStatus.memory} />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Disk Usage</p>
-                <h3 className="text-2xl font-bold">{realtimeData?.metrics?.disk?.toFixed(1)}%</h3>
-              </div>
-              <StatusBadge status={healthStatus.disk} />
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Network</p>
-                <h3 className="text-2xl font-bold">{(realtimeData?.metrics?.network / 1000).toFixed(1)} MB/s</h3>
-              </div>
-              <StatusBadge status={healthStatus.network} />
-            </div>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="processes">Processes</TabsTrigger>
-            <TabsTrigger value="metrics">Detailed Metrics</TabsTrigger>
-            <TabsTrigger value="logs">Logs</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <ServiceMetrics data={realtimeData?.metrics} />
-            <MetricComparison data={realtimeData?.metrics} />
-          </TabsContent>
-
-          <TabsContent value="processes">
-            <ProcessMetrics data={realtimeData} />
-          </TabsContent>
-
-          <TabsContent value="metrics" className="space-y-6">
+          {/* Service Overview Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
             <Card className="p-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Performance Analysis</h3>
-                <Button variant="outline" size="sm" onClick={() => exportMetrics()}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Report
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <ServiceMetrics data={realtimeData?.metrics} />
-                <MetricComparison data={realtimeData?.metrics} />
+              <h3 className="font-medium mb-2">Status</h3>
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
+                Running
               </div>
             </Card>
-          </TabsContent>
+            <Card className="p-4">
+              <h3 className="font-medium mb-2">Memory Usage</h3>
+              <div className="text-2xl font-bold">64%</div>
+            </Card>
+            <Card className="p-4">
+              <h3 className="font-medium mb-2">CPU Usage</h3>
+              <div className="text-2xl font-bold">28%</div>
+            </Card>
+            <Card className="p-4">
+              <h3 className="font-medium mb-2">Active Connections</h3>
+              <div className="text-2xl font-bold">156</div>
+            </Card>
+          </div>
+        </header>
 
-          <TabsContent value="logs">
-            <LogsSection />
-          </TabsContent>
-        </Tabs>
+        {/* Dashboard Content */}
+        <div className="p-6">
+          <Tabs defaultValue="metrics" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="metrics">Metrics</TabsTrigger>
+              <TabsTrigger value="processes">Processes</TabsTrigger>
+              <TabsTrigger value="logs">Logs</TabsTrigger>
+            </TabsList>
 
-        {/* Alert Sheet */}
-        <Sheet open={showAlerts} onOpenChange={setShowAlerts}>
-          <SheetContent>
-            <AlertsConfig />
-          </SheetContent>
-        </Sheet>
-      </main>
+            <TabsContent value="metrics">
+              <ServiceMetrics />
+            </TabsContent>
 
-      {/* Connection Status */}
-      {socketStatus !== 'connected' && (
-        <div className="fixed bottom-4 right-4">
-          <Badge variant="outline" className="bg-yellow-500/10">
-            <Activity className="mr-2 h-4 w-4 animate-pulse" />
-            Connecting to metrics service...
-          </Badge>
+            <TabsContent value="processes">
+              <ProcessMetrics />
+            </TabsContent>
+
+            <TabsContent value="logs">
+              <LogsSection />
+            </TabsContent>
+          </Tabs>
         </div>
-      )}
+      </div>
+
+      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }
