@@ -7,21 +7,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Activity } from 'lucide-react'
 
-export function ServiceMetrics({ data, status }) {
+export function ServiceMetrics({ data = [], status }) {
   const [chartData, setChartData] = useState([])
 
   useEffect(() => {
-    if (data?.metrics) {
-      setChartData(prev => {
-        const newPoint = {
-          time: new Date().toLocaleTimeString(),
-          cpu: data.metrics.cpu,
-          memory: data.metrics.memory,
-          network: data.metrics.network
-        }
-        const updated = [...prev, newPoint].slice(-20) // Keep last 20 points
-        return updated
-      })
+    if (Array.isArray(data) && data.length > 0) {
+      setChartData(data.map(point => ({
+        time: new Date(point.timestamp).toLocaleTimeString(),
+        ...point
+      })))
     }
   }, [data])
 
@@ -40,16 +34,16 @@ export function ServiceMetrics({ data, status }) {
         <Card className="p-4">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">CPU Usage</h3>
-            <Badge variant={data?.metrics?.cpu > 80 ? "destructive" : "outline"}>
-              {data?.metrics?.cpu?.toFixed(1)}%
+            <Badge variant={chartData[chartData.length - 1]?.cpu > 80 ? "destructive" : "outline"}>
+              {chartData[chartData.length - 1]?.cpu?.toFixed(1)}%
             </Badge>
           </div>
         </Card>
         <Card className="p-4">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Memory Usage</h3>
-            <Badge variant={data?.metrics?.memory > 90 ? "destructive" : "outline"}>
-              {data?.metrics?.memory?.toFixed(1)}%
+            <Badge variant={chartData[chartData.length - 1]?.memory > 90 ? "destructive" : "outline"}>
+              {chartData[chartData.length - 1]?.memory?.toFixed(1)}%
             </Badge>
           </div>
         </Card>
@@ -57,7 +51,7 @@ export function ServiceMetrics({ data, status }) {
           <div className="flex justify-between items-center">
             <h3 className="font-medium">Network</h3>
             <Badge variant="outline">
-              {(data?.metrics?.network / 1000).toFixed(2)} MB/s
+              {(chartData[chartData.length - 1]?.network / 1000).toFixed(2)} MB/s
             </Badge>
           </div>
         </Card>
