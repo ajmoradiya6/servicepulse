@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, Legend, Brush, Area, AreaChart,
@@ -10,8 +10,13 @@ import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Download, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react'
+import { Download, ZoomIn, ZoomOut, RefreshCw, AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useMetricsSocket } from "@/hooks/use-metrics-socket"
+import { AlertsConfig } from "@/components/ui/metrics/AlertsConfig"
+import { ProcessMetrics } from "@/components/ui/metrics/ProcessMetrics"
+import { useToast } from "@/hooks/use-toast"
 
 // Enhanced demo data with process-specific metrics
 const generateDemoData = (hours = 24) => {
@@ -37,6 +42,29 @@ export function ServiceMetrics() {
   const [detailView, setDetailView] = useState(false)
   const [data, setData] = useState(generateDemoData())
   const chartRef = useRef(null)
+  const { data: realtimeData, status: socketStatus } = useMetricsSocket('service1')
+  const { toast } = useToast()
+
+  // Alert checking
+  useEffect(() => {
+    if (realtimeData?.metrics) {
+      const { cpu, memory } = realtimeData.metrics
+      if (cpu > 80) {
+        toast({
+          title: "High CPU Usage",
+          description: `CPU usage has exceeded 80%: ${cpu.toFixed(1)}%`,
+          variant: "destructive",
+        })
+      }
+      if (memory > 90) {
+        toast({
+          title: "High Memory Usage",
+          description: `Memory usage has exceeded 90%: ${memory.toFixed(1)}%`,
+          variant: "destructive",
+        })
+      }
+    }
+  }, [realtimeData])
 
   // Zoom handling
   const handleZoom = (domain) => {
@@ -139,6 +167,7 @@ export function ServiceMetrics() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="detailed">Detailed Metrics</TabsTrigger>
           <TabsTrigger value="process">Process Metrics</TabsTrigger>
+          <TabsTrigger value="alerts">Alerts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -226,30 +255,22 @@ export function ServiceMetrics() {
         </TabsContent>
 
         <TabsContent value="process">
-          <Card className="p-4">
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="threads" name="Threads" fill="#3b82f6" />
-                  <Line
-                    type="monotone"
-                    dataKey="handles"
-                    name="Handles"
-                    stroke="#ef4444"
-                    strokeWidth={2}
-                  />
-                  <Brush dataKey="time" height={30} stroke="#8884d8" />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
+          <ProcessMetrics data={realtimeData?.metrics} />
+        </TabsContent>
+
+        <TabsContent value="alerts">
+          <AlertsConfig />
         </TabsContent>
       </Tabs>
+
+      {socketStatus !== 'connected' && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Connecting to metrics service...
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }
