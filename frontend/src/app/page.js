@@ -17,7 +17,14 @@ export default function Dashboard() {
   const { theme, setTheme } = useTheme()
   const [selectedService, setSelectedService] = useState('service1')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const { data: realtimeData, status: socketStatus, error: socketError } = useMetricsSocket(selectedService)
+  const [settings, setSettings] = useState({
+    realtime: true,
+    interval: 5,
+    logAutoScroll: true
+  })
+
+  const { data: realtimeData, status: socketStatus, error: socketError } = 
+    useMetricsSocket(selectedService, settings)
   const { toast } = useToast()
 
   const services = [
@@ -130,13 +137,21 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="logs">
-              <LogsSection logs={realtimeData?.metrics?.logs} />
+              <LogsSection 
+                logs={realtimeData?.metrics?.logs} 
+                autoScroll={settings.logAutoScroll}
+              />
             </TabsContent>
           </Tabs>
         </div>
       </div>
 
-      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsPanel 
+        open={settingsOpen} 
+        onOpenChange={setSettingsOpen}
+        settings={settings}
+        onSettingsChange={setSettings}
+      />
     </div>
   )
 }
