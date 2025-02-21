@@ -56,16 +56,17 @@ export default function Dashboard() {
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
       <div className="w-64 border-r bg-card p-4">
-        <h2 className="text-xl font-bold mb-4">Services</h2>
+        <h2 className="text-xl font-bold mb-4 animate-fade-in">Services</h2>
         <div className="space-y-2">
-          {services.map((service) => (
+          {services.map((service, index) => (
             <Button
               key={service.id}
               variant={selectedService === service.id ? "default" : "ghost"}
-              className="w-full justify-start"
+              className={`w-full justify-start transition-all duration-300 animate-fade-in`}
+              style={{ animationDelay: `${index * 100}ms` }}
               onClick={() => setSelectedService(service.id)}
             >
-              <div className={`w-2 h-2 rounded-full mr-2 ${
+              <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-500 ${
                 isConnecting && service.id === selectedService
                   ? 'bg-yellow-500 animate-pulse'
                   : service.status === 'running'
@@ -80,7 +81,7 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
-        <header className="border-b bg-card p-4 sticky top-0 z-10">
+        <header className="border-b bg-card p-4 animate-fade-in">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
             <div className="flex items-center gap-4">
@@ -108,41 +109,56 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Status</h3>
-              <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2 ${
-                  isConnecting 
-                    ? 'bg-yellow-500 animate-pulse' 
-                    : serviceStatus === 'running'
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
-                }`} />
-                {isConnecting ? 'Connecting' : serviceStatus === 'running' ? 'Running' : 'Stopped'}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Memory Usage</h3>
-              <div className="text-2xl font-bold">
-                {isConnecting ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">CPU Usage</h3>
-              <div className="text-2xl font-bold">
-                {isConnecting ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Active Connections</h3>
-              <div className="text-2xl font-bold">
-                {isConnecting ? '-' : latestMetrics?.activeConnections}
-              </div>
-            </Card>
+            {[
+              {
+                title: "Status",
+                content: (
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-2 transition-colors duration-500 ${
+                      isConnecting 
+                        ? 'bg-yellow-500 animate-pulse' 
+                        : serviceStatus === 'running'
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                    }`} />
+                    {isConnecting ? 'Connecting' : serviceStatus === 'running' ? 'Running' : 'Stopped'}
+                  </div>
+                )
+              },
+              {
+                title: "Memory Usage",
+                content: isConnecting ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`
+              },
+              {
+                title: "CPU Usage",
+                content: isConnecting ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`
+              },
+              {
+                title: "Active Connections",
+                content: isConnecting ? '-' : latestMetrics?.activeConnections
+              }
+            ].map((card, index) => (
+              <Card 
+                key={card.title}
+                className={`p-4 transition-all duration-300 animate-fade-in-up hover:shadow-lg`}
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <h3 className="font-medium mb-2">{card.title}</h3>
+                <div className="text-2xl font-bold">
+                  {typeof card.content === 'string' ? (
+                    <div className="transition-all duration-300">
+                      {card.content}
+                    </div>
+                  ) : (
+                    card.content
+                  )}
+                </div>
+              </Card>
+            ))}
           </div>
         </header>
 
-        <div className="p-6">
+        <div className="p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
           <Tabs defaultValue="metrics" className="space-y-4">
             <TabsList>
               <TabsTrigger value="metrics">Metrics</TabsTrigger>

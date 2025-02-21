@@ -34,14 +34,25 @@ export function LogsSection({ logs = [], autoScroll = true }) {
     }
   }, [filteredLogs, autoScroll])
 
-  const getLogColor = (level) => {
+  const getLogStyles = (level) => {
     switch (level) {
       case 'error':
-        return 'bg-red-500/10 border-red-500 text-red-500'
+        return 'bg-red-500/10 border-red-500 text-red-500 border rounded-lg'
       case 'warning':
-        return 'bg-yellow-500/10 border-yellow-500 text-yellow-500'
+        return 'bg-yellow-500/10 border-yellow-500 text-yellow-500 border rounded-lg'
       default:
-        return 'bg-blue-500/10 border-blue-500 text-blue-500'
+        return 'bg-blue-500/10 border-blue-500 text-blue-500 border rounded-lg'
+    }
+  }
+
+  const getLevelBadgeStyles = (level) => {
+    switch (level) {
+      case 'error':
+        return 'bg-red-500/20 text-red-700'
+      case 'warning':
+        return 'bg-yellow-500/20 text-yellow-700'
+      default:
+        return 'bg-blue-500/20 text-blue-700'
     }
   }
 
@@ -65,10 +76,10 @@ export function LogsSection({ logs = [], autoScroll = true }) {
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 animate-fade-in">
       <div className="space-y-4">
         {/* Header and Controls */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
           <div className="flex-1 relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -103,7 +114,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
         </div>
 
         {/* Stats */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap animate-fade-in" style={{ animationDelay: '200ms' }}>
           <Badge variant="outline">
             Total: {filteredLogs.length}
           </Badge>
@@ -119,27 +130,30 @@ export function LogsSection({ logs = [], autoScroll = true }) {
         </div>
 
         {/* Logs */}
-        <ScrollArea className="h-[500px] pr-4">
-          <div className="space-y-2">
+        <ScrollArea className="h-[500px]">
+          <div className="space-y-1">
             {filteredLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-muted-foreground animate-fade-in">
                 No logs found matching your criteria
               </div>
             ) : (
-              filteredLogs.map((log) => (
+              filteredLogs.map((log, index) => (
                 <div
                   key={log.id}
-                  className={`p-3 border rounded-lg ${getLogColor(log.level)} animate-fadeIn`}
+                  className={`${getLogStyles(log.level)} animate-fade-in transition-all duration-300`}
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <Badge variant="outline" className={getLogColor(log.level)}>
-                      {log.level.toUpperCase()}
-                    </Badge>
-                    <span className="text-sm opacity-70">
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded transition-colors duration-300 ${getLevelBadgeStyles(log.level)}`}>
+                      {log.level}
+                    </span>
+                    <span className="text-sm text-muted-foreground min-w-[80px]">
                       {format(new Date(log.timestamp), 'HH:mm:ss')}
                     </span>
+                    <span className="text-sm">
+                      {log.message}
+                    </span>
                   </div>
-                  <p className="text-sm">{log.message}</p>
                 </div>
               ))
             )}
