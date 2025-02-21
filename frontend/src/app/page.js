@@ -25,7 +25,8 @@ export default function Dashboard() {
 
   const { 
     data: realtimeData, 
-    status: socketStatus, 
+    status: connectionStatus, 
+    serviceStatus,
     error: socketError,
     latestMetrics,
     logs,
@@ -78,7 +79,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
             <div className="flex items-center gap-4">
-              {socketStatus === 'connected' ? (
+              {connectionStatus === 'connected' ? (
                 <Badge variant="outline" className="bg-green-500/10">
                   <Activity className="mr-2 h-4 w-4" />
                   Live
@@ -106,9 +107,9 @@ export default function Dashboard() {
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${
-                  socketStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500'
+                  serviceStatus === 'running' ? 'bg-green-500' : 'bg-red-500'
                 }`} />
-                {socketStatus === 'connected' ? 'Running' : 'Connecting'}
+                {serviceStatus === 'running' ? 'Running' : 'Stopped'}
               </div>
             </Card>
             <Card className="p-4">
@@ -140,7 +141,7 @@ export default function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics">
-              <ServiceMetrics data={realtimeData} status={socketStatus} />
+              <ServiceMetrics data={realtimeData} status={connectionStatus} />
             </TabsContent>
 
             <TabsContent value="logs">

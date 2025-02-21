@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
-  const [status, setStatus] = useState('connecting')
+  const [connectionStatus, setConnectionStatus] = useState('connected') // Changed default to connected
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
@@ -18,8 +18,8 @@ export function useMetricsSocket(serviceId, settings) {
   })
 
   const generateServiceStatus = useCallback((currentStatus) => {
-    // 90% chance to keep current status, 10% chance to change
-    if (Math.random() > 0.9) {
+    // 95% chance to keep current status, 5% chance to change
+    if (Math.random() > 0.95) {
       return currentStatus === 'running' ? 'stopped' : 'running'
     }
     return currentStatus
@@ -61,13 +61,18 @@ export function useMetricsSocket(serviceId, settings) {
 
   // Update service statuses periodically
   useEffect(() => {
-    const interval = setInterval(() => {
+    const updateStatuses = () => {
       setServiceStatuses(prev => ({
         service1: generateServiceStatus(prev.service1),
         service2: generateServiceStatus(prev.service2),
         service3: generateServiceStatus(prev.service3)
       }))
-    }, 10000) // Update every 10 seconds
+    }
+
+    // Initial update
+    updateStatuses()
+
+    const interval = setInterval(updateStatuses, 10000) // Update every 10 seconds
 
     return () => clearInterval(interval)
   }, [generateServiceStatus])
@@ -80,7 +85,6 @@ export function useMetricsSocket(serviceId, settings) {
       const newMetrics = generateMetrics()
       const newLog = generateLog()
       
-      // Update service-specific data
       serviceDataRef.current[serviceId] = {
         metrics: [
           ...(serviceDataRef.current[serviceId]?.metrics || []),
@@ -95,7 +99,7 @@ export function useMetricsSocket(serviceId, settings) {
       setLatestMetrics(newMetrics)
       setLogs(serviceDataRef.current[serviceId].logs)
       setData(serviceDataRef.current[serviceId].metrics)
-      setStatus('connected')
+      setConnectionStatus('connected')
 
       // Add service-specific logs based on status changes
       if (serviceStatuses[serviceId] === 'stopped') {
@@ -123,7 +127,8 @@ export function useMetricsSocket(serviceId, settings) {
 
   return { 
     data, 
-    status: serviceStatuses[serviceId], // Return actual service status
+    status: connectionStatus, // Return connection status for grid
+    serviceStatus: serviceStatuses[serviceId], // Return specific service status
     error,
     latestMetrics,
     logs,
