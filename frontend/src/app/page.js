@@ -23,8 +23,13 @@ export default function Dashboard() {
     logAutoScroll: true
   })
 
-  const { data: realtimeData, status: socketStatus, error: socketError } = 
-    useMetricsSocket(selectedService, settings)
+  const { 
+    data: realtimeData, 
+    status: socketStatus, 
+    error: socketError,
+    latestMetrics 
+  } = useMetricsSocket(selectedService, settings)
+
   const { toast } = useToast()
 
   const services = [
@@ -107,19 +112,19 @@ export default function Dashboard() {
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
               <div className="text-2xl font-bold">
-                {realtimeData?.metrics?.memory?.toFixed(1)}%
+                {latestMetrics.memory?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
               <div className="text-2xl font-bold">
-                {realtimeData?.metrics?.cpu?.toFixed(1)}%
+                {latestMetrics.cpu?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
               <div className="text-2xl font-bold">
-                {realtimeData?.metrics?.activeConnections}
+                {latestMetrics.activeConnections}
               </div>
             </Card>
           </div>

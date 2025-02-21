@@ -11,6 +11,13 @@ export function useMetricsSocket(serviceId, settings) {
   const serviceDataRef = useRef({})
   const [data, setData] = useState(null)
 
+  // Add latest metrics state
+  const [latestMetrics, setLatestMetrics] = useState({
+    cpu: 0,
+    memory: 0,
+    activeConnections: 0
+  })
+
   // Service-specific ranges and configurations
   const getServiceRanges = useCallback((service) => {
     switch(service) {
@@ -66,6 +73,13 @@ export function useMetricsSocket(serviceId, settings) {
       ].slice(-50) // Keep last 50 data points
     }
 
+    // Update latest metrics for overview tiles
+    setLatestMetrics({
+      cpu: newMetrics.cpu,
+      memory: newMetrics.memory,
+      activeConnections: newMetrics.activeConnections
+    })
+
     setData({
       serviceId,
       metrics: serviceDataRef.current[serviceId].metrics
@@ -119,6 +133,7 @@ export function useMetricsSocket(serviceId, settings) {
   return { 
     data: data?.metrics || [], 
     status, 
-    error 
+    error,
+    latestMetrics // Add this to the return object
   }
 }
