@@ -20,6 +20,7 @@ export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
   const [status, setStatus] = useState('connecting')
   const [error, setError] = useState(null)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const generateLog = useCallback(() => ({
     id: Date.now(),
@@ -41,43 +42,48 @@ export function useMetricsSocket(serviceId, settings) {
     }
   }), [generateLog])
 
+  // Function to update data
+  const updateData = useCallback(() => {
+    const newData = generateMetrics()
+    setData(prev => ({
+      ...newData,
+      metrics: {
+        ...newData.metrics,
+        logs: [...(prev?.metrics?.logs || []), ...newData.metrics.logs].slice(-100)
+      }
+    }))
+    setStatus('connected')
+
+    if (Math.random() > 0.95) {
+      setError('High resource usage detected')
+      setTimeout(() => setError(null), 3000)
+    }
+  }, [generateMetrics])
+
+  // Initial data load effect
+  useEffect(() => {
+    if (isFirstLoad) {
+      updateData()
+      setIsFirstLoad(false)
+    }
+  }, [isFirstLoad, updateData])
+
+  // Interval updates effect
   useEffect(() => {
     let interval
 
-    const connectWebSocket = () => {
-      try {
-        setStatus('connecting')
-        
-        if (settings.realtime) {
-          interval = setInterval(() => {
-            const newData = generateMetrics()
-            setData(prev => ({
-              ...newData,
-              metrics: {
-                ...newData.metrics,
-                logs: [...(prev?.metrics?.logs || []), ...newData.metrics.logs].slice(-100) // Keep last 100 logs
-              }
-            }))
-            setStatus('connected')
-
-            if (Math.random() > 0.95) {
-              setError('High resource usage detected')
-              setTimeout(() => setError(null), 3000)
-            }
-          }, settings.interval * 1000)
-        }
-      } catch (err) {
-        setStatus('error')
-        setError(err.message)
-      }
+    if (settings.realtime && !isFirstLoad) {
+      interval = setInterval(() => {
+        updateData()
+      }, settings.interval * 1000)
     }
-
-    connectWebSocket()
 
     return () => {
-      if (interval) clearInterval(interval)
+      if (interval) {
+        clearInterval(interval)
+      }
     }
-  }, [settings.realtime, settings.interval, generateMetrics])
+  }, [settings.realtime, settings.interval, isFirstLoad, updateData])
 
   return { data, status, error }
 }
