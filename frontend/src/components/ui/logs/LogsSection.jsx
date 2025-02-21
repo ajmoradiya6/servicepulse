@@ -45,25 +45,20 @@ export function LogsSection({ logs = [], autoScroll = true }) {
     }
   }
 
-  const exportLogs = async (format) => {
+  const exportLogs = async () => {
     setIsExporting(true)
     try {
-      if (format === 'csv') {
-        const csvContent = filteredLogs.map(log => 
-          `${log.timestamp},${log.level},${log.message}`
-        ).join('\n')
-        
-        const blob = new Blob([`Timestamp,Level,Message\n${csvContent}`], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `service-logs-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.csv`
-        a.click()
-      } else {
-        // PDF export using the pdf-generator
-        const doc = await import('@/lib/pdf-generator').then(m => m.generateLogReport(filteredLogs))
-        doc.save(`service-logs-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.pdf`)
-      }
+      const csvContent = filteredLogs.map(log => 
+        `${format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss')},${log.level},${log.message.replace(/,/g, ';')}`
+      ).join('\n')
+      
+      const blob = new Blob([`Timestamp,Level,Message\n${csvContent}`], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `service-logs-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
     } finally {
       setIsExporting(false)
     }
@@ -98,17 +93,17 @@ export function LogsSection({ logs = [], autoScroll = true }) {
             </Select>
             <Button
               variant="outline"
-              onClick={() => exportLogs('csv')}
+              onClick={exportLogs}
               disabled={isExporting}
             >
-              <Download className="mr-2 h-4 w-4" />
-              Export
+              <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
+              {isExporting ? 'Exporting...' : 'Export CSV'}
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge variant="outline">
             Total: {filteredLogs.length}
           </Badge>
