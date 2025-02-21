@@ -1,21 +1,43 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Settings, Moon, Sun } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
+import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
+import { SettingsPanel } from "@/components/ui/settings/SettingsPanel"
+import { useToast } from "@/hooks/use-toast"
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme()
   const [selectedService, setSelectedService] = useState('service1')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const { toast } = useToast()
   
   const services = [
     { id: 'service1', name: 'Authentication Service', status: 'running' },
     { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
     { id: 'service3', name: 'Data Processing Service', status: 'running' }
   ]
+
+  // Simulate service monitoring
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Simulate fetching service health
+      fetch(`/api/services/${selectedService}/health`)
+        .catch(error => {
+          toast({
+            title: "Service Error",
+            description: "Failed to fetch service health data",
+            variant: "destructive",
+          })
+        })
+    }, 5 * 60 * 1000) // 5 minutes
+
+    return () => clearInterval(interval)
+  }, [selectedService])
 
   return (
     <div className="flex h-screen bg-background">
@@ -52,7 +74,7 @@ export default function Dashboard() {
               <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
                 <Settings className="h-5 w-5" />
               </Button>
             </div>
@@ -97,14 +119,12 @@ export default function Dashboard() {
               </Card>
             </TabsContent>
             <TabsContent value="metrics">
-              <Card className="p-4">
-                <h3 className="font-medium mb-4">Performance Metrics</h3>
-                {/* Charts will be added here */}
-              </Card>
+              <ServiceMetrics />
             </TabsContent>
           </Tabs>
         </div>
       </div>
+      <SettingsPanel open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   )
 }
