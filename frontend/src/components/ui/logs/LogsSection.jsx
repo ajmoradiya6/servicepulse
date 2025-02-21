@@ -129,7 +129,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
               filteredLogs.map((log) => (
                 <div
                   key={log.id}
-                  className={`p-3 border rounded-lg ${getLogColor(log.level)} animate-fadeIn transition-all duration-200 hover:scale-[1.01]`}
+                  className={`p-3 border rounded-lg ${getLogColor(log.level)} animate-fadeIn`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <Badge variant="outline" className={getLogColor(log.level)}>
