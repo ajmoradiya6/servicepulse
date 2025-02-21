@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Bell, Settings, Moon, Sun } from 'lucide-react'
+import { Bell, Settings, Moon, Sun, Activity } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useTheme } from "next-themes"
 import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
@@ -11,12 +12,14 @@ import { ProcessMetrics } from "@/components/ui/metrics/ProcessMetrics"
 import { LogsSection } from "@/components/ui/logs/LogsSection"
 import { SettingsPanel } from "@/components/ui/settings/SettingsPanel"
 import { useToast } from "@/hooks/use-toast"
+import { useMetricsSocket } from "@/hooks/use-metrics-socket"
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme()
   const [selectedService, setSelectedService] = useState('service1')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { toast } = useToast()
+  const { data: realtimeData, status: socketStatus, error: socketError } = useMetricsSocket(selectedService)
 
   const services = [
     { id: 'service1', name: 'Authentication Service', status: 'running' },
@@ -37,6 +40,16 @@ export default function Dashboard() {
     }, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (socketError) {
+      toast({
+        title: "Monitoring Alert",
+        description: socketError,
+        variant: "destructive",
+      })
+    }
+  }, [socketError, toast])
 
   return (
     <div className="flex h-screen bg-background">
@@ -63,10 +76,21 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto">
         {/* Header */}
-        <header className="border-b bg-card p-4">
+        <header className="border-b bg-card p-4 sticky top-0 z-10">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
             <div className="flex items-center gap-4">
+              {socketStatus === 'connected' ? (
+                <Badge variant="outline" className="bg-green-500/10">
+                  <Activity className="mr-2 h-4 w-4" />
+                  Live
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-yellow-500/10">
+                  <Activity className="mr-2 h-4 w-4 animate-pulse" />
+                  Connecting...
+                </Badge>
+              )}
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -84,21 +108,29 @@ export default function Dashboard() {
             <Card className="p-4">
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
-                Running
+                <div className={`w-3 h-3 rounded-full mr-2 ${
+                  socketStatus === 'connected' ? 'bg-green-500' : 'bg-yellow-500'
+                }`} />
+                {socketStatus === 'connected' ? 'Running' : 'Connecting'}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
-              <div className="text-2xl font-bold">64%</div>
+              <div className="text-2xl font-bold">
+                {realtimeData?.metrics?.memory?.toFixed(1)}%
+              </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
-              <div className="text-2xl font-bold">28%</div>
+              <div className="text-2xl font-bold">
+                {realtimeData?.metrics?.cpu?.toFixed(1)}%
+              </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
-              <div className="text-2xl font-bold">156</div>
+              <div className="text-2xl font-bold">
+                {realtimeData?.metrics?.activeConnections}
+              </div>
             </Card>
           </div>
         </header>
@@ -113,15 +145,15 @@ export default function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics">
-              <ServiceMetrics />
+              <ServiceMetrics data={realtimeData} status={socketStatus} />
             </TabsContent>
 
             <TabsContent value="processes">
-              <ProcessMetrics />
+              <ProcessMetrics data={realtimeData} />
             </TabsContent>
 
             <TabsContent value="logs">
-              <LogsSection />
+              <LogsSection logs={realtimeData?.metrics?.logs} />
             </TabsContent>
           </Tabs>
         </div>
