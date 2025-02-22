@@ -4,28 +4,17 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
-  const [status, setStatus] = useState('connecting') // Reset to initial connecting state
+  const [status, setStatus] = useState('connecting')
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
   const serviceDataRef = useRef({})
-  const isFirstLoad = useRef(true)
   
   const [serviceStatuses, setServiceStatuses] = useState({
     service1: 'running',
     service2: 'running',
     service3: 'running'
   })
-
-  // Reset status when switching services
-  useEffect(() => {
-    setStatus('connecting')
-    const timer = setTimeout(() => {
-      setStatus('connected')
-    }, 1000) // Show connecting for 1 second
-
-    return () => clearTimeout(timer)
-  }, [serviceId])
 
   const generateServiceStatus = useCallback((currentStatus) => {
     if (Math.random() > 0.95) {
@@ -117,7 +106,7 @@ export function useMetricsSocket(serviceId, settings) {
       }
     }
 
-    // Immediate update
+    // Initial update
     updateData()
 
     // Set up interval if realtime is enabled
