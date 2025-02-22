@@ -59,7 +59,7 @@ export default function Dashboard() {
               <div className={`w-2 h-2 rounded-full mr-2 ${
                 selectedService === service.id && connectionStatus === 'connecting'
                   ? 'bg-yellow-500'
-                  : service.status === 'running'
+                  : serviceStatuses[service.id] === 'running'
                   ? 'bg-green-500'
                   : 'bg-red-500'
               }`} />
@@ -106,13 +106,13 @@ export default function Dashboard() {
                 <div className={`w-3 h-3 rounded-full mr-2 ${
                   connectionStatus === 'connecting'
                     ? 'bg-yellow-500'
-                    : serviceStatus === 'running'
+                    : serviceStatuses[selectedService] === 'running'
                     ? 'bg-green-500'
                     : 'bg-red-500'
                 }`} />
                 {connectionStatus === 'connecting' 
                   ? 'Connecting' 
-                  : serviceStatus === 'running' 
+                  : serviceStatuses[selectedService] === 'running' 
                   ? 'Running' 
                   : 'Stopped'}
               </div>
