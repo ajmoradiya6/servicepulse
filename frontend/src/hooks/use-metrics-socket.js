@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
-  const [status, setStatus] = useState('connecting')
+  const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
   const serviceDataRef = useRef({})
+  const isFirstLoad = useRef(true)
   
   const [serviceStatuses, setServiceStatuses] = useState({
     service1: 'running',
@@ -57,6 +58,19 @@ export function useMetricsSocket(serviceId, settings) {
     message: `Service ${serviceId} ${Math.random() > 0.5 ? 'running normally' : 'processing requests'}`
   }), [serviceId])
 
+  // Reset connection status when switching services
+  useEffect(() => {
+    setConnectionStatus('connecting')
+    
+    // Simulate connection delay
+    const timer = setTimeout(() => {
+      setConnectionStatus('connected')
+      isFirstLoad.current = false
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [serviceId])
+
   // Update service statuses periodically
   useEffect(() => {
     const updateStatuses = () => {
@@ -93,7 +107,6 @@ export function useMetricsSocket(serviceId, settings) {
       setLatestMetrics(newMetrics)
       setLogs(serviceDataRef.current[serviceId].logs)
       setData(serviceDataRef.current[serviceId].metrics)
-      setStatus('connected')
 
       // Add service-specific logs based on status changes
       if (serviceStatuses[serviceId] === 'stopped') {
@@ -121,11 +134,12 @@ export function useMetricsSocket(serviceId, settings) {
 
   return { 
     data, 
-    status,
+    connectionStatus,
     serviceStatus: serviceStatuses[serviceId],
     error,
     latestMetrics,
     logs,
-    serviceStatuses
+    serviceStatuses,
+    isFirstLoad: isFirstLoad.current
   }
 }

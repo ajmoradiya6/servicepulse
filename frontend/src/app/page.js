@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from 'react'
-import { Bell, Settings, Moon, Sun } from 'lucide-react'
+import { Bell, Settings, Moon, Sun, Activity } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
 import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
 import { LogsSection } from "@/components/ui/logs/LogsSection"
@@ -24,10 +25,13 @@ export default function Dashboard() {
 
   const { 
     data: realtimeData, 
-    status: socketStatus, 
+    connectionStatus,
+    serviceStatus,
     error: socketError,
     latestMetrics,
-    logs 
+    logs,
+    serviceStatuses,
+    isFirstLoad
   } = useMetricsSocket(selectedService, settings)
 
   const services = [
@@ -38,7 +42,6 @@ export default function Dashboard() {
 
   // Get the current service's status
   const currentService = services.find(s => s.id === selectedService)
-  const serviceStatus = currentService?.status || 'stopped'
 
   return (
     <div className="flex h-screen bg-background">
@@ -54,7 +57,11 @@ export default function Dashboard() {
               onClick={() => setSelectedService(service.id)}
             >
               <div className={`w-2 h-2 rounded-full mr-2 ${
-                service.status === 'running' ? 'bg-green-500' : 'bg-red-500'
+                selectedService === service.id && connectionStatus === 'connecting'
+                  ? 'bg-yellow-500'
+                  : service.status === 'running'
+                  ? 'bg-green-500'
+                  : 'bg-red-500'
               }`} />
               {service.name}
             </Button>
@@ -68,6 +75,18 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
             <div className="flex items-center gap-4">
+              {/* Connection Status Badge */}
+              <Badge 
+                variant="outline" 
+                className={`${
+                  connectionStatus === 'connecting' 
+                    ? 'bg-yellow-500/10 text-yellow-500'
+                    : 'bg-green-500/10 text-green-500'
+                }`}
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                {connectionStatus === 'connecting' ? 'Connecting' : 'Live'}
+              </Badge>
               <Button variant="ghost" size="icon">
                 <Bell className="h-5 w-5" />
               </Button>
@@ -85,27 +104,35 @@ export default function Dashboard() {
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${
-                  serviceStatus === 'running' ? 'bg-green-500' : 'bg-red-500'
+                  connectionStatus === 'connecting'
+                    ? 'bg-yellow-500'
+                    : serviceStatus === 'running'
+                    ? 'bg-green-500'
+                    : 'bg-red-500'
                 }`} />
-                {serviceStatus === 'running' ? 'Running' : 'Stopped'}
+                {connectionStatus === 'connecting' 
+                  ? 'Connecting' 
+                  : serviceStatus === 'running' 
+                  ? 'Running' 
+                  : 'Stopped'}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics?.memory?.toFixed(1)}%
+                {connectionStatus === 'connecting' ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics?.cpu?.toFixed(1)}%
+                {connectionStatus === 'connecting' ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
               <div className="text-2xl font-bold">
-                {latestMetrics?.activeConnections}
+                {connectionStatus === 'connecting' ? '-' : latestMetrics?.activeConnections}
               </div>
             </Card>
           </div>
@@ -119,7 +146,7 @@ export default function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics">
-              <ServiceMetrics data={realtimeData} status={socketStatus} />
+              <ServiceMetrics data={realtimeData} status={connectionStatus} />
             </TabsContent>
 
             <TabsContent value="logs">
