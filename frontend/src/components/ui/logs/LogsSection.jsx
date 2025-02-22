@@ -11,11 +11,12 @@ import { format } from 'date-fns'
 import { Search, Download, Filter } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 
-export function LogsSection({ logs = [], autoScroll = true }) {
+export function LogsSection({ logs = [], autoScroll = true, isLoading }) {
   const scrollRef = useRef(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [levelFilter, setLevelFilter] = useState('all')
   const [isExporting, setIsExporting] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
   
   const debouncedSearch = useDebounce(searchTerm, 300)
 
@@ -75,6 +76,18 @@ export function LogsSection({ logs = [], autoScroll = true }) {
     }
   }
 
+  // Loading skeleton for logs
+  const LogSkeleton = () => (
+    <div className="animate-skeleton-pulse p-3 rounded-lg" 
+      style={{ "--skeleton-from": "var(--card)", "--skeleton-to": "var(--muted)" }}>
+      <div className="flex items-center gap-3">
+        <div className="w-16 h-6 bg-muted rounded"></div>
+        <div className="w-20 h-4 bg-muted rounded"></div>
+        <div className="flex-1 h-4 bg-muted rounded"></div>
+      </div>
+    </div>
+  )
+
   return (
     <Card className="p-4 animate-fade-in">
       <div className="space-y-4">
@@ -115,24 +128,36 @@ export function LogsSection({ logs = [], autoScroll = true }) {
 
         {/* Stats */}
         <div className="flex gap-2 flex-wrap animate-fade-in" style={{ animationDelay: '200ms' }}>
-          <Badge variant="outline">
-            Total: {filteredLogs.length}
-          </Badge>
-          <Badge variant="outline" className="bg-blue-500/10">
-            Info: {filteredLogs.filter(l => l.level === 'info').length}
-          </Badge>
-          <Badge variant="outline" className="bg-yellow-500/10">
-            Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
-          </Badge>
-          <Badge variant="outline" className="bg-red-500/10">
-            Errors: {filteredLogs.filter(l => l.level === 'error').length}
-          </Badge>
+          {isLoading ? (
+            Array(4).fill(0).map((_, i) => (
+              <div key={i} className="w-24 h-6 bg-muted rounded animate-skeleton-pulse"></div>
+            ))
+          ) : (
+            <>
+              <Badge variant="outline">
+                Total: {filteredLogs.length}
+              </Badge>
+              <Badge variant="outline" className="bg-blue-500/10">
+                Info: {filteredLogs.filter(l => l.level === 'info').length}
+              </Badge>
+              <Badge variant="outline" className="bg-yellow-500/10">
+                Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
+              </Badge>
+              <Badge variant="outline" className="bg-red-500/10">
+                Errors: {filteredLogs.filter(l => l.level === 'error').length}
+              </Badge>
+            </>
+          )}
         </div>
 
         {/* Logs */}
         <ScrollArea className="h-[500px]">
           <div className="space-y-1">
-            {filteredLogs.length === 0 ? (
+            {isLoading ? (
+              Array(5).fill(0).map((_, i) => (
+                <LogSkeleton key={i} />
+              ))
+            ) : filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground animate-fade-in">
                 No logs found matching your criteria
               </div>
@@ -140,7 +165,9 @@ export function LogsSection({ logs = [], autoScroll = true }) {
               filteredLogs.map((log, index) => (
                 <div
                   key={log.id}
-                  className={`${getLogStyles(log.level)} animate-fade-in transition-all duration-300`}
+                  className={`${getLogStyles(log.level)} animate-fade-in transition-all duration-300 ${
+                    isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+                  }`}
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="flex items-center gap-3 px-3 py-2">

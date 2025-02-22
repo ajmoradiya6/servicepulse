@@ -15,7 +15,9 @@ import { useMetricsSocket } from "@/hooks/use-metrics-socket"
 
 export default function Dashboard() {
   const { theme, setTheme } = useTheme()
+  const [previousService, setPreviousService] = useState(null)
   const [selectedService, setSelectedService] = useState('service1')
+  const [isTransitioning, setIsTransitioning] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settings, setSettings] = useState({
     realtime: true,
@@ -42,6 +44,26 @@ export default function Dashboard() {
     { id: 'service3', name: 'Data Processing Service', status: serviceStatuses.service3 }
   ]
 
+  const handleServiceChange = (newService) => {
+    setPreviousService(selectedService)
+    setIsTransitioning(true)
+    setSelectedService(newService)
+    
+    // Reset transition state after animation
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 300)
+  }
+
+  // Loading skeleton component
+  const MetricSkeleton = () => (
+    <div className="animate-skeleton-pulse rounded-lg p-4" 
+      style={{ "--skeleton-from": "var(--card)", "--skeleton-to": "var(--muted)" }}>
+      <div className="h-4 w-24 bg-muted rounded mb-2"></div>
+      <div className="h-8 w-16 bg-muted rounded"></div>
+    </div>
+  )
+
   useEffect(() => {
     if (socketError) {
       toast({
@@ -54,21 +76,22 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen bg-background">
-      {/* Sidebar */}
+      {/* Sidebar with service switch animations */}
       <div className="w-64 border-r bg-card p-4">
-        <h2 className="text-xl font-bold mb-4 animate-fade-in">Services</h2>
+        <h2 className="text-xl font-bold mb-4">Services</h2>
         <div className="space-y-2">
-          {services.map((service, index) => (
+          {services.map((service) => (
             <Button
               key={service.id}
               variant={selectedService === service.id ? "default" : "ghost"}
-              className={`w-full justify-start transition-all duration-300 animate-fade-in`}
-              style={{ animationDelay: `${index * 100}ms` }}
-              onClick={() => setSelectedService(service.id)}
+              className={`w-full justify-start transition-all duration-300 ${
+                selectedService === service.id ? 'animate-state-change' : ''
+              }`}
+              onClick={() => handleServiceChange(service.id)}
             >
-              <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-500 ${
+              <div className={`w-2 h-2 rounded-full mr-2 transition-all duration-500 ${
                 isConnecting && service.id === selectedService
-                  ? 'bg-yellow-500 animate-pulse'
+                  ? 'bg-yellow-500 animate-loading-spin'
                   : service.status === 'running'
                   ? 'bg-green-500'
                   : 'bg-red-500'
@@ -79,10 +102,10 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main content with loading and transition animations */}
       <div className="flex-1 overflow-auto">
-        <header className="border-b bg-card p-4 animate-fade-in">
-          <div className="flex items-center justify-between">
+        <header className="border-b bg-card p-4">
+          <div className="flex items-center justify-between animate-content-fade">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
             <div className="flex items-center gap-4">
               {connectionStatus === 'connected' ? (
@@ -109,56 +132,76 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            {[
-              {
-                title: "Status",
-                content: (
+            {isConnecting ? (
+              // Loading skeletons
+              Array(4).fill(0).map((_, i) => (
+                <MetricSkeleton key={i} />
+              ))
+            ) : (
+              // Metric cards with transition animations
+              <>
+                <Card className={`p-4 ${
+                  isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+                }`}>
+                  <h3 className="font-medium mb-2">Status</h3>
                   <div className="flex items-center">
-                    <div className={`w-3 h-3 rounded-full mr-2 transition-colors duration-500 ${
+                    <div className={`w-3 h-3 rounded-full mr-2 ${
                       isConnecting 
-                        ? 'bg-yellow-500 animate-pulse' 
+                        ? 'bg-yellow-500 animate-loading-spin' 
                         : serviceStatus === 'running'
                         ? 'bg-green-500'
                         : 'bg-red-500'
                     }`} />
-                    {isConnecting ? 'Connecting' : serviceStatus === 'running' ? 'Running' : 'Stopped'}
+                    {isConnecting ? (
+                      <span className="flex gap-1">
+                        Connecting
+                        <span className="animate-loading-dots">.</span>
+                        <span className="animate-loading-dots" style={{ animationDelay: "0.2s" }}>.</span>
+                        <span className="animate-loading-dots" style={{ animationDelay: "0.4s" }}>.</span>
+                      </span>
+                    ) : (
+                      serviceStatus === 'running' ? 'Running' : 'Stopped'
+                    )}
                   </div>
-                )
-              },
-              {
-                title: "Memory Usage",
-                content: isConnecting ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`
-              },
-              {
-                title: "CPU Usage",
-                content: isConnecting ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`
-              },
-              {
-                title: "Active Connections",
-                content: isConnecting ? '-' : latestMetrics?.activeConnections
-              }
-            ].map((card, index) => (
-              <Card 
-                key={card.title}
-                className={`p-4 transition-all duration-300 animate-fade-in-up hover:shadow-lg`}
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <h3 className="font-medium mb-2">{card.title}</h3>
-                <div className="text-2xl font-bold">
-                  {typeof card.content === 'string' ? (
-                    <div className="transition-all duration-300">
-                      {card.content}
-                    </div>
-                  ) : (
-                    card.content
-                  )}
-                </div>
-              </Card>
-            ))}
+                </Card>
+                <Card 
+                  className={`p-4 ${
+                    isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+                  }`}
+                >
+                  <h3 className="font-medium mb-2">Memory Usage</h3>
+                  <div className="text-2xl font-bold">
+                    {isConnecting ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
+                  </div>
+                </Card>
+                <Card 
+                  className={`p-4 ${
+                    isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+                  }`}
+                >
+                  <h3 className="font-medium mb-2">CPU Usage</h3>
+                  <div className="text-2xl font-bold">
+                    {isConnecting ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
+                  </div>
+                </Card>
+                <Card 
+                  className={`p-4 ${
+                    isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+                  }`}
+                >
+                  <h3 className="font-medium mb-2">Active Connections</h3>
+                  <div className="text-2xl font-bold">
+                    {isConnecting ? '-' : latestMetrics?.activeConnections}
+                  </div>
+                </Card>
+              </>
+            )}
           </div>
         </header>
 
-        <div className="p-6 animate-fade-in" style={{ animationDelay: '400ms' }}>
+        <div className={`p-6 ${
+          isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
+        }`}>
           <Tabs defaultValue="metrics" className="space-y-4">
             <TabsList>
               <TabsTrigger value="metrics">Metrics</TabsTrigger>

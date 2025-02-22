@@ -97,6 +97,41 @@ export default {
         "slide-in": {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(0)" }
+        },
+        // State Transitions
+        "state-change": {
+          "0%": { transform: "scale(0.95)", opacity: "0.5" },
+          "50%": { transform: "scale(1.05)", opacity: "0.8" },
+          "100%": { transform: "scale(1)", opacity: "1" }
+        },
+        "content-fade": {
+          "0%": { transform: "translateY(-10px)", opacity: "0" },
+          "100%": { transform: "translateY(0)", opacity: "1" }
+        },
+
+        // Loading Animations
+        "skeleton-pulse": {
+          "0%, 100%": { backgroundColor: "var(--skeleton-from)" },
+          "50%": { backgroundColor: "var(--skeleton-to)" }
+        },
+        "loading-dots": {
+          "0%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+          "100%": { transform: "translateY(0)" }
+        },
+        "loading-spin": {
+          "0%": { transform: "rotate(0deg)" },
+          "100%": { transform: "rotate(360deg)" }
+        },
+
+        // Service Switch Animations
+        "service-exit": {
+          "0%": { transform: "scale(1)", opacity: "1" },
+          "100%": { transform: "scale(0.95)", opacity: "0" }
+        },
+        "service-enter": {
+          "0%": { transform: "scale(1.05)", opacity: "0" },
+          "100%": { transform: "scale(1)", opacity: "1" }
         }
   		},
   		animation: {
@@ -105,7 +140,14 @@ export default {
         "fade-in": "fade-in 0.5s ease-out",
         "fade-in-up": "fade-in-up 0.5s ease-out",
         "pulse-scale": "pulse-scale 2s infinite",
-        "slide-in": "slide-in 0.3s ease-out"
+        "slide-in": "slide-in 0.3s ease-out",
+        "state-change": "state-change 0.5s ease-out",
+        "content-fade": "content-fade 0.3s ease-out",
+        "skeleton-pulse": "skeleton-pulse 1.5s ease-in-out infinite",
+        "loading-dots": "loading-dots 1s ease-in-out infinite",
+        "loading-spin": "loading-spin 1s linear infinite",
+        "service-exit": "service-exit 0.3s ease-in",
+        "service-enter": "service-enter 0.3s ease-out"
   		}
   	}
   },
