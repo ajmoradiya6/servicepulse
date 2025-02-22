@@ -36,6 +36,10 @@ export default function Dashboard() {
     { id: 'service3', name: 'Data Processing Service', status: 'running' }
   ]
 
+  // Get the current service's status
+  const currentService = services.find(s => s.id === selectedService)
+  const serviceStatus = currentService?.status || 'stopped'
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
@@ -81,9 +85,9 @@ export default function Dashboard() {
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${
-                  socketStatus === 'connecting' ? 'bg-yellow-500' : 'bg-green-500'
+                  serviceStatus === 'running' ? 'bg-green-500' : 'bg-red-500'
                 }`} />
-                {socketStatus === 'connecting' ? 'Connecting' : 'Running'}
+                {serviceStatus === 'running' ? 'Running' : 'Stopped'}
               </div>
             </Card>
             <Card className="p-4">
