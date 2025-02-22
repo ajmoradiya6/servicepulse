@@ -24,7 +24,7 @@ export default function Dashboard() {
 
   const { 
     data: realtimeData, 
-    status, 
+    status: socketStatus, 
     error: socketError,
     latestMetrics,
     logs 
@@ -35,8 +35,6 @@ export default function Dashboard() {
     { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
     { id: 'service3', name: 'Data Processing Service', status: 'running' }
   ]
-
-  const serviceStatus = services.find(s => s.id === selectedService)?.status || 'stopped'
 
   return (
     <div className="flex h-screen bg-background">
@@ -52,11 +50,7 @@ export default function Dashboard() {
               onClick={() => setSelectedService(service.id)}
             >
               <div className={`w-2 h-2 rounded-full mr-2 ${
-                selectedService === service.id && status === 'connecting'
-                  ? 'bg-yellow-500'
-                  : service.status === 'running'
-                  ? 'bg-green-500'
-                  : 'bg-red-500'
+                service.status === 'running' ? 'bg-green-500' : 'bg-red-500'
               }`} />
               {service.name}
             </Button>
@@ -87,35 +81,27 @@ export default function Dashboard() {
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
                 <div className={`w-3 h-3 rounded-full mr-2 ${
-                  status === 'connecting'
-                    ? 'bg-yellow-500'
-                    : serviceStatus === 'running'
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
+                  socketStatus === 'connecting' ? 'bg-yellow-500' : 'bg-green-500'
                 }`} />
-                {status === 'connecting' 
-                  ? 'Connecting' 
-                  : serviceStatus === 'running' 
-                  ? 'Running' 
-                  : 'Stopped'}
+                {socketStatus === 'connecting' ? 'Connecting' : 'Running'}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
               <div className="text-2xl font-bold">
-                {status === 'connecting' ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
+                {latestMetrics?.memory?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
               <div className="text-2xl font-bold">
-                {status === 'connecting' ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
+                {latestMetrics?.cpu?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
               <div className="text-2xl font-bold">
-                {status === 'connecting' ? '-' : latestMetrics?.activeConnections}
+                {latestMetrics?.activeConnections}
               </div>
             </Card>
           </div>
@@ -129,7 +115,7 @@ export default function Dashboard() {
             </TabsList>
 
             <TabsContent value="metrics">
-              <ServiceMetrics data={realtimeData} status={status} />
+              <ServiceMetrics data={realtimeData} status={socketStatus} />
             </TabsContent>
 
             <TabsContent value="logs">
