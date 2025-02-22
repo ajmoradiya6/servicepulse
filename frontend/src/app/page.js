@@ -56,9 +56,9 @@ export default function Dashboard() {
               className="w-full justify-start"
               onClick={() => setSelectedService(service.id)}
             >
-              <div className={`w-2 h-2 rounded-full mr-2 ${
+              <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 ${
                 selectedService === service.id && connectionStatus === 'connecting'
-                  ? 'bg-yellow-500'
+                  ? 'bg-yellow-500 animate-pulse-scale'
                   : serviceStatuses[service.id] === 'running'
                   ? 'bg-green-500'
                   : 'bg-red-500'
