@@ -46,10 +46,10 @@ export default function Dashboard() {
             <Button
               key={service.id}
               variant={selectedService === service.id ? "default" : "ghost"}
-              className="w-full justify-start transition-all duration-300"
+              className="w-full justify-start"
               onClick={() => setSelectedService(service.id)}
             >
-              <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 ${
+              <div className={`w-2 h-2 rounded-full mr-2 ${
                 socketStatus === 'connecting' && service.id === selectedService
                   ? 'bg-yellow-500'
                   : service.status === 'running'
@@ -84,7 +84,7 @@ export default function Dashboard() {
             <Card className="p-4">
               <h3 className="font-medium mb-2">Status</h3>
               <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2 transition-colors duration-300 ${
+                <div className={`w-3 h-3 rounded-full mr-2 ${
                   socketStatus === 'connecting' ? 'bg-yellow-500' : 'bg-green-500'
                 }`} />
                 {socketStatus === 'connecting' ? 'Connecting' : 'Running'}
@@ -92,19 +92,19 @@ export default function Dashboard() {
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
-              <div className="text-2xl font-bold transition-all duration-300">
+              <div className="text-2xl font-bold">
                 {latestMetrics?.memory?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
-              <div className="text-2xl font-bold transition-all duration-300">
+              <div className="text-2xl font-bold">
                 {latestMetrics?.cpu?.toFixed(1)}%
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
-              <div className="text-2xl font-bold transition-all duration-300">
+              <div className="text-2xl font-bold">
                 {latestMetrics?.activeConnections}
               </div>
             </Card>

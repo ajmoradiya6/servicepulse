@@ -11,12 +11,11 @@ import { format } from 'date-fns'
 import { Search, Download, Filter } from 'lucide-react'
 import { useDebounce } from '@/hooks/use-debounce'
 
-export function LogsSection({ logs = [], autoScroll = true, isLoading }) {
+export function LogsSection({ logs = [], autoScroll = true }) {
   const scrollRef = useRef(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [levelFilter, setLevelFilter] = useState('all')
   const [isExporting, setIsExporting] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
   
   const debouncedSearch = useDebounce(searchTerm, 300)
 
@@ -35,25 +34,14 @@ export function LogsSection({ logs = [], autoScroll = true, isLoading }) {
     }
   }, [filteredLogs, autoScroll])
 
-  const getLogStyles = (level) => {
+  const getLogColor = (level) => {
     switch (level) {
       case 'error':
-        return 'bg-red-500/10 border-red-500 text-red-500 border rounded-lg'
+        return 'bg-red-50 dark:bg-red-950/20'
       case 'warning':
-        return 'bg-yellow-500/10 border-yellow-500 text-yellow-500 border rounded-lg'
+        return 'bg-yellow-50 dark:bg-yellow-950/20'
       default:
-        return 'bg-blue-500/10 border-blue-500 text-blue-500 border rounded-lg'
-    }
-  }
-
-  const getLevelBadgeStyles = (level) => {
-    switch (level) {
-      case 'error':
-        return 'bg-red-500/20 text-red-700'
-      case 'warning':
-        return 'bg-yellow-500/20 text-yellow-700'
-      default:
-        return 'bg-blue-500/20 text-blue-700'
+        return 'bg-blue-50 dark:bg-blue-950/20'
     }
   }
 
@@ -76,23 +64,10 @@ export function LogsSection({ logs = [], autoScroll = true, isLoading }) {
     }
   }
 
-  // Loading skeleton for logs
-  const LogSkeleton = () => (
-    <div className="animate-skeleton-pulse p-3 rounded-lg" 
-      style={{ "--skeleton-from": "var(--card)", "--skeleton-to": "var(--muted)" }}>
-      <div className="flex items-center gap-3">
-        <div className="w-16 h-6 bg-muted rounded"></div>
-        <div className="w-20 h-4 bg-muted rounded"></div>
-        <div className="flex-1 h-4 bg-muted rounded"></div>
-      </div>
-    </div>
-  )
-
   return (
-    <Card className="p-4 animate-fade-in">
+    <Card className="p-4">
       <div className="space-y-4">
-        {/* Header and Controls */}
-        <div className="flex flex-col sm:flex-row gap-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -120,58 +95,45 @@ export function LogsSection({ logs = [], autoScroll = true, isLoading }) {
               onClick={exportLogs}
               disabled={isExporting}
             >
-              <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
+              <Download className="mr-2 h-4 w-4" />
               {isExporting ? 'Exporting...' : 'Export CSV'}
             </Button>
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="flex gap-2 flex-wrap animate-fade-in" style={{ animationDelay: '200ms' }}>
-          {isLoading ? (
-            Array(4).fill(0).map((_, i) => (
-              <div key={i} className="w-24 h-6 bg-muted rounded animate-skeleton-pulse"></div>
-            ))
-          ) : (
-            <>
-              <Badge variant="outline">
-                Total: {filteredLogs.length}
-              </Badge>
-              <Badge variant="outline" className="bg-blue-500/10">
-                Info: {filteredLogs.filter(l => l.level === 'info').length}
-              </Badge>
-              <Badge variant="outline" className="bg-yellow-500/10">
-                Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
-              </Badge>
-              <Badge variant="outline" className="bg-red-500/10">
-                Errors: {filteredLogs.filter(l => l.level === 'error').length}
-              </Badge>
-            </>
-          )}
+        <div className="flex gap-2 flex-wrap">
+          <Badge variant="outline">
+            Total: {filteredLogs.length}
+          </Badge>
+          <Badge variant="outline" className="bg-blue-500/10">
+            Info: {filteredLogs.filter(l => l.level === 'info').length}
+          </Badge>
+          <Badge variant="outline" className="bg-yellow-500/10">
+            Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
+          </Badge>
+          <Badge variant="outline" className="bg-red-500/10">
+            Errors: {filteredLogs.filter(l => l.level === 'error').length}
+          </Badge>
         </div>
 
-        {/* Logs */}
         <ScrollArea className="h-[500px]">
           <div className="space-y-1">
-            {isLoading ? (
-              Array(5).fill(0).map((_, i) => (
-                <LogSkeleton key={i} />
-              ))
-            ) : filteredLogs.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground animate-fade-in">
+            {filteredLogs.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
                 No logs found matching your criteria
               </div>
             ) : (
-              filteredLogs.map((log, index) => (
+              filteredLogs.map((log) => (
                 <div
                   key={log.id}
-                  className={`${getLogStyles(log.level)} animate-fade-in transition-all duration-300 ${
-                    isTransitioning ? 'animate-service-exit' : 'animate-service-enter'
-                  }`}
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className={`${getLogColor(log.level)} rounded-sm`}
                 >
                   <div className="flex items-center gap-3 px-3 py-2">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded transition-colors duration-300 ${getLevelBadgeStyles(log.level)}`}>
+                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
+                      log.level === 'error' ? 'bg-red-500 text-white' :
+                      log.level === 'warning' ? 'bg-yellow-500 text-white' :
+                      'bg-blue-500 text-white'
+                    }`}>
                       {log.level}
                     </span>
                     <span className="text-sm text-muted-foreground min-w-[80px]">
