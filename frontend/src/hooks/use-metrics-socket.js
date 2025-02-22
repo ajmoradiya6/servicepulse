@@ -4,12 +4,11 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
   const [data, setData] = useState(null)
-  const [connectionStatus, setConnectionStatus] = useState('connecting') // Start with connecting
+  const [status, setStatus] = useState('connected') // Changed default to connected
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
   const serviceDataRef = useRef({})
-  const [isInitialLoad, setIsInitialLoad] = useState(true)
   
   const [serviceStatuses, setServiceStatuses] = useState({
     service1: 'running',
@@ -58,7 +57,21 @@ export function useMetricsSocket(serviceId, settings) {
     message: `Service ${serviceId} ${Math.random() > 0.5 ? 'running normally' : 'processing requests'}`
   }), [serviceId])
 
-  // Main update effect with initial delay
+  // Update service statuses periodically
+  useEffect(() => {
+    const updateStatuses = () => {
+      setServiceStatuses(prev => ({
+        service1: generateServiceStatus(prev.service1),
+        service2: generateServiceStatus(prev.service2),
+        service3: generateServiceStatus(prev.service3)
+      }))
+    }
+
+    const interval = setInterval(updateStatuses, 10000)
+    return () => clearInterval(interval)
+  }, [generateServiceStatus])
+
+  // Main update effect
   useEffect(() => {
     let interval
     
@@ -80,8 +93,7 @@ export function useMetricsSocket(serviceId, settings) {
       setLatestMetrics(newMetrics)
       setLogs(serviceDataRef.current[serviceId].logs)
       setData(serviceDataRef.current[serviceId].metrics)
-      setConnectionStatus('connected')
-      setIsInitialLoad(false)
+      setStatus('connected')
 
       // Add service-specific logs based on status changes
       if (serviceStatuses[serviceId] === 'stopped') {
@@ -94,54 +106,26 @@ export function useMetricsSocket(serviceId, settings) {
       }
     }
 
-    // Show connecting state for 1 second on initial load
-    if (isInitialLoad) {
-      setConnectionStatus('connecting')
-      const timeout = setTimeout(() => {
-        updateData()
-      }, 1000)
-      return () => clearTimeout(timeout)
-    }
+    // Immediate update
+    updateData()
 
-    // Regular updates
+    // Set up interval if realtime is enabled
     if (settings.realtime) {
-      updateData() // Immediate update after initial load
       interval = setInterval(updateData, settings.interval * 1000)
     }
 
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, isInitialLoad, serviceStatuses])
-
-  // Reset to connecting state when service changes
-  useEffect(() => {
-    setConnectionStatus('connecting')
-    setIsInitialLoad(true)
-  }, [serviceId])
-
-  // Update service statuses periodically
-  useEffect(() => {
-    const updateStatuses = () => {
-      setServiceStatuses(prev => ({
-        service1: generateServiceStatus(prev.service1),
-        service2: generateServiceStatus(prev.service2),
-        service3: generateServiceStatus(prev.service3)
-      }))
-    }
-
-    const interval = setInterval(updateStatuses, 10000)
-    return () => clearInterval(interval)
-  }, [generateServiceStatus])
+  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, serviceStatuses])
 
   return { 
     data, 
-    status: connectionStatus,
+    status,
     serviceStatus: serviceStatuses[serviceId],
     error,
     latestMetrics,
     logs,
-    serviceStatuses,
-    isConnecting: connectionStatus === 'connecting'
+    serviceStatuses
   }
 }
