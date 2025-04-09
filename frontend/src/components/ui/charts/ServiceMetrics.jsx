@@ -20,17 +20,8 @@ export function ServiceMetrics({ data = [], status }) {
   }, [data])
 
   return (
-    <div className="space-y-4">
-      {status !== 'connected' && (
-        <Alert>
-          <Activity className="h-4 w-4 animate-pulse" />
-          <AlertDescription>
-            {status === 'connecting' ? 'Connecting to metrics service...' : 'Connection error'}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="h-full flex flex-col">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <Card className="p-4">
           <div className="flex justify-between items-center">
             <h3 className="font-medium">CPU Usage</h3>
@@ -57,9 +48,9 @@ export function ServiceMetrics({ data = [], status }) {
         </Card>
       </div>
 
-      <Card className="p-4">
+      <Card className="p-4 flex-1 flex flex-col min-h-0">
         <h3 className="font-medium mb-4">Resource Usage Trend</h3>
-        <div className="h-[300px]">
+        <div className="h-[250px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />

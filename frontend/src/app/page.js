@@ -78,9 +78,9 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-card p-4">
+      <div className="w-64 border-r bg-card p-4 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Services</h2>
         <div className="space-y-2">
           {services.map((service) => (
@@ -104,7 +104,7 @@ export default function Dashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b bg-card p-4">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Service Health Monitor</h1>
@@ -172,18 +172,18 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="p-6">
-          <Tabs defaultValue="metrics" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="metrics">Metrics</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
+        <div className="flex-1 p-6 overflow-hidden">
+          <Tabs defaultValue="metrics" className="h-full flex flex-col">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="metrics" className="w-full">Metrics</TabsTrigger>
+              <TabsTrigger value="logs" className="w-full">Logs</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="metrics">
+            <TabsContent value="metrics" className="flex-1 overflow-hidden mt-4">
               <ServiceMetrics data={realtimeData} status={connectionStatus} />
             </TabsContent>
 
-            <TabsContent value="logs">
+            <TabsContent value="logs" className="flex-1 overflow-hidden mt-4">
               <LogsSection logs={logs} autoScroll={settings.logAutoScroll} />
             </TabsContent>
           </Tabs>

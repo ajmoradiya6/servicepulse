@@ -37,11 +37,44 @@ export function LogsSection({ logs = [], autoScroll = true }) {
   const getLogColor = (level) => {
     switch (level) {
       case 'error':
-        return 'bg-red-50 dark:bg-red-950/20'
+        return 'bg-red-100/50 dark:bg-red-900/30 border-red-200 dark:border-red-700/50'
       case 'warning':
-        return 'bg-yellow-50 dark:bg-yellow-950/20'
+        return 'bg-yellow-100/50 dark:bg-yellow-900/30 border-yellow-200 dark:border-yellow-700/50'
       default:
-        return 'bg-blue-50 dark:bg-blue-950/20'
+        return 'bg-blue-100/50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700/50'
+    }
+  }
+
+  const getTagColor = (level) => {
+    switch (level) {
+      case 'error':
+        return 'bg-red-200 dark:bg-red-700/50 text-red-800 dark:text-red-100 border-red-300 dark:border-red-600/50'
+      case 'warning':
+        return 'bg-yellow-200 dark:bg-yellow-700/50 text-yellow-800 dark:text-yellow-100 border-yellow-300 dark:border-yellow-600/50'
+      default:
+        return 'bg-blue-200 dark:bg-blue-700/50 text-blue-800 dark:text-blue-100 border-blue-300 dark:border-blue-600/50'
+    }
+  }
+
+  const getBadgeColor = (level) => {
+    switch (level) {
+      case 'error':
+        return 'text-red-600 dark:text-red-400'
+      case 'warning':
+        return 'text-yellow-600 dark:text-yellow-400'
+      default:
+        return 'text-green-600 dark:text-green-400'
+    }
+  }
+
+  const getBadgeIcon = (level) => {
+    switch (level) {
+      case 'error':
+        return '●'
+      case 'warning':
+        return '●'
+      default:
+        return '●'
     }
   }
 
@@ -59,89 +92,85 @@ export function LogsSection({ logs = [], autoScroll = true }) {
       a.download = `service-logs-${format(new Date(), 'yyyy-MM-dd-HH-mm')}.csv`
       a.click()
       window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error exporting logs:', error)
     } finally {
       setIsExporting(false)
     }
   }
 
   return (
-    <Card className="p-4">
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search logs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Select value={levelFilter} onValueChange={setLevelFilter}>
-              <SelectTrigger className="w-[130px]">
-                <Filter className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Filter level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="info">Info</SelectItem>
-                <SelectItem value="warning">Warning</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="outline"
-              onClick={exportLogs}
-              disabled={isExporting}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {isExporting ? 'Exporting...' : 'Export CSV'}
-            </Button>
-          </div>
+    <div className="h-full flex flex-col">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+        <div className="relative w-full sm:w-auto">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search logs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-8 w-full sm:w-[300px]"
+          />
         </div>
-
-        <div className="flex gap-2 flex-wrap">
-          <Badge variant="outline">
-            Total: {filteredLogs.length}
-          </Badge>
-          <Badge variant="outline" className="bg-blue-500/10">
-            Info: {filteredLogs.filter(l => l.level === 'info').length}
-          </Badge>
-          <Badge variant="outline" className="bg-yellow-500/10">
-            Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
-          </Badge>
-          <Badge variant="outline" className="bg-red-500/10">
-            Errors: {filteredLogs.filter(l => l.level === 'error').length}
-          </Badge>
+        <div className="flex gap-2">
+          <Select value={levelFilter} onValueChange={setLevelFilter}>
+            <SelectTrigger className="w-[130px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Filter level" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Levels</SelectItem>
+              <SelectItem value="info">Info</SelectItem>
+              <SelectItem value="warning">Warning</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            onClick={exportLogs}
+            disabled={isExporting}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
         </div>
+      </div>
 
-        <ScrollArea className="h-[500px]">
-          <div className="space-y-1">
+      <div className="flex gap-2 flex-wrap mb-4">
+        <Badge variant="outline">
+          Total: {filteredLogs.length}
+        </Badge>
+        <Badge variant="outline" className={getLogColor('info')}>
+          Info: {filteredLogs.filter(l => l.level === 'info').length}
+        </Badge>
+        <Badge variant="outline" className={getLogColor('warning')}>
+          Warnings: {filteredLogs.filter(l => l.level === 'warning').length}
+        </Badge>
+        <Badge variant="outline" className={getLogColor('error')}>
+          Errors: {filteredLogs.filter(l => l.level === 'error').length}
+        </Badge>
+      </div>
+
+      <Card className="flex-1 flex flex-col min-h-0">
+        <ScrollArea className="flex-1">
+          <div className="p-4 space-y-2">
             {filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
-                No logs found matching your criteria
+                No logs found
               </div>
             ) : (
               filteredLogs.map((log) => (
                 <div
                   key={log.id}
-                  className={`${getLogColor(log.level)} rounded-sm`}
+                  className={`p-4 rounded-lg border ${getLogColor(log.level)} shadow-sm hover:shadow-md transition-shadow duration-200`}
                 >
-                  <div className="flex items-center gap-3 px-3 py-2">
-                    <span className={`px-2 py-0.5 text-xs font-medium rounded ${
-                      log.level === 'error' ? 'bg-red-500 text-white' :
-                      log.level === 'warning' ? 'bg-yellow-500 text-white' :
-                      'bg-blue-500 text-white'
-                    }`}>
-                      {log.level}
-                    </span>
-                    <span className="text-sm text-muted-foreground min-w-[80px]">
+                  <div className="flex items-center gap-2">
+                    <div className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getTagColor(log.level)}`}>
+                      {log.level.toUpperCase()}
+                    </div>
+                    <span className="text-xs font-mono text-muted-foreground/70">
                       {format(new Date(log.timestamp), 'HH:mm:ss')}
                     </span>
-                    <span className="text-sm">
-                      {log.message}
-                    </span>
+                    <span className="text-sm font-mono text-foreground/90 tracking-tight">{log.message}</span>
                   </div>
                 </div>
               ))
@@ -149,7 +178,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
             <div ref={scrollRef} />
           </div>
         </ScrollArea>
-      </div>
-    </Card>
+      </Card>
+    </div>
   )
 }
