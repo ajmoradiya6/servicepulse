@@ -51,7 +51,7 @@ const nextConfig = {
     ignoreDuringBuilds: process.env.NODE_ENV === 'development',
   },
 
-  reactStrictMode: process.env.NODE_ENV === 'development' ? false : true,
+  reactStrictMode: false,
 
   experimental: {
     largePageDataBytes: 128 * 100000,

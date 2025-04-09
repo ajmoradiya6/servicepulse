@@ -3,19 +3,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 export function useMetricsSocket(serviceId, settings) {
-  const [data, setData] = useState(null)
+  // All useState hooks must be called in the same order on every render
+  const [data, setData] = useState([])
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [error, setError] = useState(null)
   const [latestMetrics, setLatestMetrics] = useState({})
   const [logs, setLogs] = useState([])
-  const serviceDataRef = useRef({})
-  const isFirstLoad = useRef(true)
-  
   const [serviceStatuses, setServiceStatuses] = useState({
     service1: 'running',
     service2: 'running',
     service3: 'running'
   })
+  const [isInitialized, setIsInitialized] = useState(false)
+  
+  // Refs don't count in the hook order
+  const serviceDataRef = useRef({})
+  const isFirstLoad = useRef(true)
+  const isClient = useRef(false)
 
   const generateServiceStatus = useCallback((currentStatus) => {
     if (Math.random() > 0.95) {
@@ -52,14 +56,22 @@ export function useMetricsSocket(serviceId, settings) {
   }, [serviceId, getServiceRanges])
 
   const generateLog = useCallback(() => ({
-    id: Date.now(),
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     timestamp: new Date().toISOString(),
     level: ['info', 'warning', 'error'][Math.floor(Math.random() * 3)],
     message: `Service ${serviceId} ${Math.random() > 0.5 ? 'running normally' : 'processing requests'}`
   }), [serviceId])
 
+  // Initialize client-side functionality
+  useEffect(() => {
+    isClient.current = true
+    setIsInitialized(true)
+  }, [])
+
   // Reset connection status when switching services
   useEffect(() => {
+    if (!isInitialized) return
+    
     setConnectionStatus('connecting')
     
     // Simulate connection delay
@@ -69,10 +81,12 @@ export function useMetricsSocket(serviceId, settings) {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [serviceId])
+  }, [serviceId, isInitialized])
 
   // Update service statuses periodically
   useEffect(() => {
+    if (!isInitialized) return
+    
     const updateStatuses = () => {
       setServiceStatuses(prev => ({
         service1: generateServiceStatus(prev.service1),
@@ -83,10 +97,12 @@ export function useMetricsSocket(serviceId, settings) {
 
     const interval = setInterval(updateStatuses, 10000)
     return () => clearInterval(interval)
-  }, [generateServiceStatus])
+  }, [generateServiceStatus, isInitialized])
 
-  // Main update effect
+  // Main update effect - only run on client side
   useEffect(() => {
+    if (!isInitialized) return
+    
     let interval
     
     const updateData = () => {
@@ -111,7 +127,7 @@ export function useMetricsSocket(serviceId, settings) {
       // Add service-specific logs based on status changes
       if (serviceStatuses[serviceId] === 'stopped') {
         setLogs(prev => [{
-          id: Date.now(),
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           timestamp: new Date().toISOString(),
           level: 'error',
           message: `Service ${serviceId} is not responding`
@@ -130,7 +146,7 @@ export function useMetricsSocket(serviceId, settings) {
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, serviceStatuses])
+  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, serviceStatuses, isInitialized])
 
   return { 
     data, 
@@ -140,6 +156,7 @@ export function useMetricsSocket(serviceId, settings) {
     latestMetrics,
     logs,
     serviceStatuses,
-    isFirstLoad: isFirstLoad.current
+    isFirstLoad: isFirstLoad.current,
+    isInitialized
   }
 }

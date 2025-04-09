@@ -1,19 +1,33 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Settings, Moon, Sun, Activity } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useTheme } from "next-themes"
-import { ServiceMetrics } from "@/components/ui/charts/ServiceMetrics"
-import { LogsSection } from "@/components/ui/logs/LogsSection"
-import { SettingsPanel } from "@/components/ui/settings/SettingsPanel"
+import dynamic from 'next/dynamic'
 import { useToast } from "@/hooks/use-toast"
 import { useMetricsSocket } from "@/hooks/use-metrics-socket"
 
+// Dynamically import components that use client-side data
+const ServiceMetrics = dynamic(() => import('@/components/ui/charts/ServiceMetrics').then(mod => mod.ServiceMetrics), {
+  ssr: false,
+  loading: () => <div className="h-[400px] flex items-center justify-center">Loading metrics...</div>
+})
+
+const LogsSection = dynamic(() => import('@/components/ui/logs/LogsSection').then(mod => mod.LogsSection), {
+  ssr: false,
+  loading: () => <div className="h-[500px] flex items-center justify-center">Loading logs...</div>
+})
+
+const SettingsPanel = dynamic(() => import('@/components/ui/settings/SettingsPanel').then(mod => mod.SettingsPanel), {
+  ssr: false
+})
+
 export default function Dashboard() {
+  // All hooks must be called in the same order on every render
   const { theme, setTheme } = useTheme()
   const [selectedService, setSelectedService] = useState('service1')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -22,7 +36,9 @@ export default function Dashboard() {
     interval: 5,
     logAutoScroll: true
   })
+  const [mounted, setMounted] = useState(false)
 
+  // Always call the hook, but it will handle server/client rendering internally
   const { 
     data: realtimeData, 
     connectionStatus,
@@ -31,8 +47,14 @@ export default function Dashboard() {
     latestMetrics,
     logs,
     serviceStatuses,
-    isFirstLoad
+    isFirstLoad,
+    isInitialized
   } = useMetricsSocket(selectedService, settings)
+
+  // Set mounted state after component mounts
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const services = [
     { id: 'service1', name: 'Authentication Service', status: 'running' },
@@ -42,6 +64,18 @@ export default function Dashboard() {
 
   // Get the current service's status
   const currentService = services.find(s => s.id === selectedService)
+
+  // Prevent hydration issues by not rendering until mounted
+  if (!mounted) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Service Health Monitor</h1>
+          <p>Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-background">
