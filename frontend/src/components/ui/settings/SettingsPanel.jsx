@@ -184,31 +184,23 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                   </div>
 
                   <div className="mb-4">
-                    <Label className="text-base">Log Display Settings</Label>
+                    <Label className="text-base">Resource Usage Notifications</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                       <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                         <Checkbox
-                          id="show-logs"
-                          checked={settings.notifications?.showLogs}
-                          onCheckedChange={(checked) => updateSettings('notifications.showLogs', checked)}
+                          id="cpu-usage"
+                          checked={settings.notifications?.resourceUsage?.cpu}
+                          onCheckedChange={(checked) => updateSettings('notifications.resourceUsage.cpu', checked)}
                         />
-                        <Label htmlFor="show-logs">Show Logs in Notifications</Label>
+                        <Label htmlFor="cpu-usage">High CPU Usage</Label>
                       </div>
                       <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                         <Checkbox
-                          id="warn-logs"
-                          checked={settings.notifications?.logLevels?.warn}
-                          onCheckedChange={(checked) => updateSettings('notifications.logLevels.warn', checked)}
+                          id="memory-usage"
+                          checked={settings.notifications?.resourceUsage?.memory}
+                          onCheckedChange={(checked) => updateSettings('notifications.resourceUsage.memory', checked)}
                         />
-                        <Label htmlFor="warn-logs">Include Warning Logs</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
-                        <Checkbox
-                          id="error-logs"
-                          checked={settings.notifications?.logLevels?.error}
-                          onCheckedChange={(checked) => updateSettings('notifications.logLevels.error', checked)}
-                        />
-                        <Label htmlFor="error-logs">Include Error Logs</Label>
+                        <Label htmlFor="memory-usage">High Memory Usage</Label>
                       </div>
                     </div>
                   </div>

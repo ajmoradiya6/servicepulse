@@ -60,6 +60,10 @@ export default function Dashboard() {
         onRestart: true,
         onError: true
       },
+      resourceUsage: {
+        cpu: true,
+        memory: true
+      },
       realTime: true,
       playSound: true,
       alertSound: "default",
@@ -161,7 +165,34 @@ export default function Dashboard() {
     setNotifications([])
   }
 
-  // Listen for service status changes and add notifications
+  // Constants for resource thresholds
+  const CPU_THRESHOLD = 80 // 80%
+  const MEMORY_THRESHOLD = 85 // 85%
+
+  // Function to check resource usage and send notifications
+  const checkResourceUsage = (metrics, service) => {
+    if (!metrics || service.id !== selectedService) return
+
+    if (metrics.cpu > CPU_THRESHOLD && settings.notifications?.resourceUsage?.cpu) {
+      addNotification({
+        type: 'warning',
+        title: 'High CPU Usage',
+        message: `${service.name} CPU usage is at ${metrics.cpu.toFixed(1)}%`,
+        service: service.name
+      })
+    }
+
+    if (metrics.memory > MEMORY_THRESHOLD && settings.notifications?.resourceUsage?.memory) {
+      addNotification({
+        type: 'warning',
+        title: 'High Memory Usage',
+        message: `${service.name} memory usage is at ${metrics.memory.toFixed(1)}%`,
+        service: service.name
+      })
+    }
+  }
+
+  // Update the useEffect to include resource usage checks
   useEffect(() => {
     if (!isInitialized || isFirstLoad) return
 
@@ -200,7 +231,13 @@ export default function Dashboard() {
         })
       }
     })
-  }, [serviceStatuses, isInitialized, isFirstLoad])
+
+    // Check resource usage only for the selected service
+    const currentService = services.find(s => s.id === selectedService)
+    if (currentService && serviceStatuses[selectedService] === 'running' && latestMetrics) {
+      checkResourceUsage(latestMetrics, currentService)
+    }
+  }, [serviceStatuses, latestMetrics, selectedService, isInitialized, isFirstLoad])
 
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
