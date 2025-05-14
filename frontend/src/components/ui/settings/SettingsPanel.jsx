@@ -26,6 +26,9 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
     const keys = path.split('.')
     let current = newSettings
     for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) {
+        current[keys[i]] = {}
+      }
       current = current[keys[i]]
     }
     current[keys[keys.length - 1]] = value
@@ -107,17 +110,18 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                     </div>
                     <Switch
                       id="notifications-enabled"
-                      checked={settings.notifications.enabled}
+                      checked={settings.notifications?.enabled}
                       onCheckedChange={(checked) => updateSettings('notifications.enabled', checked)}
                     />
                   </div>
+
                   <div className="mb-4">
                     <Label className="text-base">Notification Methods</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                       <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                         <Checkbox
                           id="in-app"
-                          checked={settings.notifications.methods.inApp}
+                          checked={settings.notifications?.methods?.inApp}
                           onCheckedChange={(checked) => updateSettings('notifications.methods.inApp', checked)}
                         />
                         <Label htmlFor="in-app">In-app</Label>
@@ -125,7 +129,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                         <Checkbox
                           id="email"
-                          checked={settings.notifications.methods.email}
+                          checked={settings.notifications?.methods?.email}
                           onCheckedChange={(checked) => updateSettings('notifications.methods.email', checked)}
                         />
                         <Label htmlFor="email">Email</Label>
@@ -133,17 +137,86 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                         <Checkbox
                           id="sms"
-                          checked={settings.notifications.methods.sms}
+                          checked={settings.notifications?.methods?.sms}
                           onCheckedChange={(checked) => updateSettings('notifications.methods.sms', checked)}
                         />
                         <Label htmlFor="sms">SMS (Coming Soon)</Label>
                       </div>
                     </div>
                   </div>
+
+                  <div className="mb-4">
+                    <Label className="text-base">Service Status Notifications</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="service-down"
+                          checked={settings.notifications?.serviceStatus?.onStop}
+                          onCheckedChange={(checked) => updateSettings('notifications.serviceStatus.onStop', checked)}
+                        />
+                        <Label htmlFor="service-down">Service Down</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="service-error"
+                          checked={settings.notifications?.serviceStatus?.onError}
+                          onCheckedChange={(checked) => updateSettings('notifications.serviceStatus.onError', checked)}
+                        />
+                        <Label htmlFor="service-error">Service Error</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="service-restart"
+                          checked={settings.notifications?.serviceStatus?.onRestart}
+                          onCheckedChange={(checked) => updateSettings('notifications.serviceStatus.onRestart', checked)}
+                        />
+                        <Label htmlFor="service-restart">Service Restart</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="service-start"
+                          checked={settings.notifications?.serviceStatus?.onStart}
+                          onCheckedChange={(checked) => updateSettings('notifications.serviceStatus.onStart', checked)}
+                        />
+                        <Label htmlFor="service-start">Service Start</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <Label className="text-base">Log Display Settings</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="show-logs"
+                          checked={settings.notifications?.showLogs}
+                          onCheckedChange={(checked) => updateSettings('notifications.showLogs', checked)}
+                        />
+                        <Label htmlFor="show-logs">Show Logs in Notifications</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="warn-logs"
+                          checked={settings.notifications?.logLevels?.warn}
+                          onCheckedChange={(checked) => updateSettings('notifications.logLevels.warn', checked)}
+                        />
+                        <Label htmlFor="warn-logs">Include Warning Logs</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                        <Checkbox
+                          id="error-logs"
+                          checked={settings.notifications?.logLevels?.error}
+                          onCheckedChange={(checked) => updateSettings('notifications.logLevels.error', checked)}
+                        />
+                        <Label htmlFor="error-logs">Include Error Logs</Label>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="mb-4">
                     <Label className="text-base">Alert Sound</Label>
                     <Select
-                      value={settings.notifications.alertSound}
+                      value={settings.notifications?.alertSound}
                       onValueChange={(value) => updateSettings('notifications.alertSound', value)}
                     >
                       <SelectTrigger>
@@ -157,35 +230,6 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label className="text-base">Notify On</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
-                        <Checkbox
-                          id="service-down"
-                          checked={settings.notifications.notifyOn.serviceDown}
-                          onCheckedChange={(checked) => updateSettings('notifications.notifyOn.serviceDown', checked)}
-                        />
-                        <Label htmlFor="service-down">Service Down</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
-                        <Checkbox
-                          id="service-recovered"
-                          checked={settings.notifications.notifyOn.serviceRecovered}
-                          onCheckedChange={(checked) => updateSettings('notifications.notifyOn.serviceRecovered', checked)}
-                        />
-                        <Label htmlFor="service-recovered">Service Recovered</Label>
-                      </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
-                        <Checkbox
-                          id="service-restarted"
-                          checked={settings.notifications.notifyOn.serviceRestarted}
-                          onCheckedChange={(checked) => updateSettings('notifications.notifyOn.serviceRestarted', checked)}
-                        />
-                        <Label htmlFor="service-restarted">Service Restarted</Label>
-                      </div>
-                    </div>
-                  </div>
                 </Card>
               </section>
             )}
@@ -194,14 +238,14 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
               <section>
                 <h2 className="text-lg font-semibold mb-6">Email Settings</h2>
                 <Card className="p-6 mb-6">
-                  {settings.notifications.methods.email ? (
+                  {settings.notifications?.methods?.email ? (
                     <>
                       <div className="mb-4">
                         <Label htmlFor="email-recipients" className="text-base">Recipient Email Addresses</Label>
                         <Input
                           id="email-recipients"
                           placeholder="email1@example.com, email2@example.com"
-                          value={settings.email.recipients}
+                          value={settings.email?.recipients}
                           onChange={(e) => updateSettings('email.recipients', e.target.value)}
                         />
                       </div>
@@ -210,7 +254,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         <Input
                           id="email-subject-prefix"
                           placeholder="[Service Alert]"
-                          value={settings.email.subjectPrefix}
+                          value={settings.email?.subjectPrefix}
                           onChange={(e) => updateSettings('email.subjectPrefix', e.target.value)}
                         />
                       </div>
@@ -220,7 +264,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                           <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                             <Checkbox
                               id="include-service-name"
-                              checked={settings.email.includeInBody.serviceName}
+                              checked={settings.email?.includeInBody?.serviceName}
                               onCheckedChange={(checked) => updateSettings('email.includeInBody.serviceName', checked)}
                             />
                             <Label htmlFor="include-service-name">Service Name</Label>
@@ -228,7 +272,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                           <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                             <Checkbox
                               id="include-down-time"
-                              checked={settings.email.includeInBody.downSinceTime}
+                              checked={settings.email?.includeInBody?.downSinceTime}
                               onCheckedChange={(checked) => updateSettings('email.includeInBody.downSinceTime', checked)}
                             />
                             <Label htmlFor="include-down-time">Down Since Time</Label>
@@ -236,7 +280,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                           <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                             <Checkbox
                               id="include-error-reason"
-                              checked={settings.email.includeInBody.errorReason}
+                              checked={settings.email?.includeInBody?.errorReason}
                               onCheckedChange={(checked) => updateSettings('email.includeInBody.errorReason', checked)}
                             />
                             <Label htmlFor="include-error-reason">Error Reason</Label>
@@ -244,7 +288,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                           <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
                             <Checkbox
                               id="include-hostname"
-                              checked={settings.email.includeInBody.serverHostname}
+                              checked={settings.email?.includeInBody?.serverHostname}
                               onCheckedChange={(checked) => updateSettings('email.includeInBody.serverHostname', checked)}
                             />
                             <Label htmlFor="include-hostname">Server Hostname</Label>
@@ -272,7 +316,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       type="number"
                       min="1"
                       max="10"
-                      value={settings.monitoring.retryAttempts}
+                      value={settings.monitoring?.retryAttempts}
                       onChange={(e) => updateSettings('monitoring.retryAttempts', parseInt(e.target.value))}
                     />
                   </div>
@@ -283,7 +327,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                     </div>
                     <Switch
                       id="auto-restart"
-                      checked={settings.monitoring.autoRestart}
+                      checked={settings.monitoring?.autoRestart}
                       onCheckedChange={(checked) => updateSettings('monitoring.autoRestart', checked)}
                     />
                   </div>
@@ -294,7 +338,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       type="number"
                       min="1"
                       max="60"
-                      value={settings.monitoring.gracePeriod}
+                      value={settings.monitoring?.gracePeriod}
                       onChange={(e) => updateSettings('monitoring.gracePeriod', parseInt(e.target.value))}
                     />
                   </div>
@@ -324,14 +368,14 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                     </div>
                     <Switch
                       id="save-logs"
-                      checked={settings.logs.saveToFile}
+                      checked={settings.logs?.saveToFile}
                       onCheckedChange={(checked) => updateSettings('logs.saveToFile', checked)}
                     />
                   </div>
                   <div className="mb-4">
                     <Label className="text-base">Log Retention Period</Label>
                     <Select
-                      value={settings.logs.retentionPeriod}
+                      value={settings.logs?.retentionPeriod}
                       onValueChange={(value) => updateSettings('logs.retentionPeriod', value)}
                     >
                       <SelectTrigger>
@@ -347,7 +391,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                   <div>
                     <Label className="text-base">Log Level</Label>
                     <Select
-                      value={settings.logs.logLevel}
+                      value={settings.logs?.logLevel}
                       onValueChange={(value) => updateSettings('logs.logLevel', value)}
                     >
                       <SelectTrigger>

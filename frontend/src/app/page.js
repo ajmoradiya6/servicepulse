@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Bell, Settings, Moon, Sun, Activity } from 'lucide-react'
+import { Bell, Settings, Moon, Sun, Activity, X, CheckCircle2, AlertCircle, AlertTriangle, PlayCircle } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,6 +10,13 @@ import { useTheme } from "next-themes"
 import dynamic from 'next/dynamic'
 import { useToast } from "@/hooks/use-toast"
 import { useMetricsSocket } from "@/hooks/use-metrics-socket"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Dynamically import components that use client-side data
 const ServiceMetrics = dynamic(() => import('@/components/ui/charts/ServiceMetrics').then(mod => mod.ServiceMetrics), {
@@ -43,12 +50,23 @@ export default function Dashboard() {
         email: false,
         sms: false
       },
-      alertSound: 'default',
-      notifyOn: {
-        serviceDown: true,
-        serviceRecovered: true,
-        serviceRestarted: true,
-        slowService: false
+      levels: {
+        warn: true,
+        error: true
+      },
+      serviceStatus: {
+        onStop: true,
+        onStart: false,
+        onRestart: true,
+        onError: true
+      },
+      realTime: true,
+      playSound: true,
+      alertSound: "default",
+      showLogs: true,
+      logLevels: {
+        warn: true,
+        error: true
       }
     },
     // Email Settings
@@ -76,6 +94,8 @@ export default function Dashboard() {
     }
   })
   const [mounted, setMounted] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [showNotifications, setShowNotifications] = useState(false)
 
   // Always call the hook, but it will handle server/client rendering internally
   const { 
@@ -103,6 +123,84 @@ export default function Dashboard() {
 
   // Get the current service's status
   const currentService = services.find(s => s.id === selectedService)
+
+  // Function to generate a unique ID for notifications
+  const generateNotificationId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  // Function to add a new notification
+  const addNotification = (notification) => {
+    setNotifications(prev => {
+      // Check if a similar notification already exists in the last 5 seconds
+      const recentNotifications = prev.filter(n => 
+        Date.now() - n.timestamp < 5000 && 
+        n.message === notification.message &&
+        n.service === notification.service
+      )
+
+      if (recentNotifications.length > 0) {
+        return prev // Don't add duplicate notification
+      }
+
+      return [{
+        id: generateNotificationId(),
+        timestamp: new Date(),
+        ...notification
+      }, ...prev].slice(0, 50) // Keep last 50 notifications
+    })
+  }
+
+  // Function to remove a notification
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }
+
+  // Function to clear all notifications
+  const clearNotifications = () => {
+    setNotifications([])
+  }
+
+  // Listen for service status changes and add notifications
+  useEffect(() => {
+    if (!isInitialized || isFirstLoad) return
+
+    // Check for service status changes
+    Object.entries(serviceStatuses).forEach(([serviceId, status]) => {
+      const service = services.find(s => s.id === serviceId)
+      if (!service) return
+
+      if (status === 'stopped' && settings.notifications?.serviceStatus?.onStop) {
+        addNotification({
+          type: 'error',
+          title: 'Service Stopped',
+          message: `${service.name} has stopped running`,
+          service: service.name
+        })
+      } else if (status === 'running' && settings.notifications?.serviceStatus?.onStart) {
+        addNotification({
+          type: 'success',
+          title: 'Service Started',
+          message: `${service.name} is now running`,
+          service: service.name
+        })
+      } else if (status === 'error' && settings.notifications?.serviceStatus?.onError) {
+        addNotification({
+          type: 'error',
+          title: 'Service Error',
+          message: `${service.name} encountered an error`,
+          service: service.name
+        })
+      } else if (status === 'restarting' && settings.notifications?.serviceStatus?.onRestart) {
+        addNotification({
+          type: 'warning',
+          title: 'Service Restarting',
+          message: `${service.name} is restarting`,
+          service: service.name
+        })
+      }
+    })
+  }, [serviceStatuses, isInitialized, isFirstLoad])
 
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
@@ -160,9 +258,113 @@ export default function Dashboard() {
                 <Activity className="w-4 h-4 mr-2" />
                 {connectionStatus === 'connecting' ? 'Connecting' : 'Live'}
               </Badge>
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
+
+              {/* Notifications Dropdown */}
+              <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5" />
+                    {notifications.length > 0 && (
+                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
+                        {notifications.length}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <div className="flex items-center justify-between p-2">
+                    <h4 className="font-medium">Notifications</h4>
+                    {notifications.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs"
+                        onClick={clearNotifications}
+                      >
+                        Clear all
+                      </Button>
+                    )}
+                  </div>
+                  <DropdownMenuSeparator />
+                  <ScrollArea className="h-[300px]">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-muted-foreground">
+                        No notifications
+                      </div>
+                    ) : (
+                      <div className="p-2">
+                        {notifications.map((notification) => {
+                          const getIcon = () => {
+                            switch (notification.type) {
+                              case 'success':
+                                return <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              case 'error':
+                                return <AlertCircle className="h-5 w-5 text-red-500" />
+                              case 'warning':
+                                return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                              default:
+                                return <PlayCircle className="h-5 w-5 text-blue-500" />
+                            }
+                          }
+
+                          const getBorderColor = () => {
+                            switch (notification.type) {
+                              case 'success':
+                                return 'border-green-500/20 bg-green-500/5'
+                              case 'error':
+                                return 'border-red-500/20 bg-red-500/5'
+                              case 'warning':
+                                return 'border-yellow-500/20 bg-yellow-500/5'
+                              default:
+                                return 'border-blue-500/20 bg-blue-500/5'
+                            }
+                          }
+
+                          return (
+                            <div
+                              key={notification.id}
+                              className={`p-3 rounded-lg mb-2 border ${getBorderColor()}`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">
+                                  {getIcon()}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm">{notification.title}</span>
+                                      {notification.service && (
+                                        <Badge variant="outline" className="text-xs font-normal">
+                                          {notification.service}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 -mt-1 -mr-1"
+                                      onClick={() => removeNotification(notification.id)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {notification.message}
+                                  </p>
+                                  <span className="text-xs text-muted-foreground mt-2 block">
+                                    {new Date(notification.timestamp).toLocaleTimeString()}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
               </Button>

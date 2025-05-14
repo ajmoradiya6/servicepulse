@@ -6,9 +6,11 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Activity } from 'lucide-react'
+import { useNotifications } from '@/contexts/NotificationContext'
 
-export function ServiceMetrics({ data = [], status }) {
+export function ServiceMetrics({ data = [], status, serviceName }) {
   const [chartData, setChartData] = useState([])
+  const { notify } = useNotifications()
 
   useEffect(() => {
     if (Array.isArray(data) && data.length > 0) {
@@ -18,6 +20,24 @@ export function ServiceMetrics({ data = [], status }) {
       })))
     }
   }, [data])
+
+  useEffect(() => {
+    if (status === 'stopped' || status === 'error') {
+      const latestMetrics = chartData[chartData.length - 1]
+      const reason = status === 'error' 
+        ? 'Service encountered an error'
+        : 'Service has stopped running'
+
+      notify({
+        title: `Service ${status === 'error' ? 'Error' : 'Down'}`,
+        message: `${serviceName} is ${status === 'error' ? 'experiencing issues' : 'down'}`,
+        type: 'error',
+        serviceName,
+        reason,
+        logData: latestMetrics ? `CPU: ${latestMetrics.cpu}%\nMemory: ${latestMetrics.memory}%\nNetwork: ${(latestMetrics.network / 1000).toFixed(2)} MB/s` : null
+      })
+    }
+  }, [status, serviceName, chartData, notify])
 
   return (
     <div className="h-full flex flex-col">
@@ -47,6 +67,22 @@ export function ServiceMetrics({ data = [], status }) {
           </div>
         </Card>
       </div>
+
+      {status === 'stopped' && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            Service is currently down. Please check the logs for more information.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {status === 'error' && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            Service is experiencing issues. Please check the logs for more information.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card className="p-4 flex-1 flex flex-col min-h-0">
         <h3 className="font-medium mb-4">Resource Usage Trend</h3>
