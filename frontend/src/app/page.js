@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { AnimatedNumber } from "@/components/ui/animated-number"
 
 // Dynamically import components that use client-side data
 const ServiceMetrics = dynamic(() => import('@/components/ui/charts/ServiceMetrics').then(mod => mod.ServiceMetrics), {
@@ -432,19 +433,36 @@ export default function Dashboard() {
             <Card className="p-4">
               <h3 className="font-medium mb-2">Memory Usage</h3>
               <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : `${latestMetrics?.memory?.toFixed(1)}%`}
+                {connectionStatus === 'connecting' ? '-' : (
+                  <AnimatedNumber 
+                    value={latestMetrics?.memory || 0} 
+                    suffix="%" 
+                    decimals={1}
+                  />
+                )}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">CPU Usage</h3>
               <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : `${latestMetrics?.cpu?.toFixed(1)}%`}
+                {connectionStatus === 'connecting' ? '-' : (
+                  <AnimatedNumber 
+                    value={latestMetrics?.cpu || 0} 
+                    suffix="%" 
+                    decimals={1}
+                  />
+                )}
               </div>
             </Card>
             <Card className="p-4">
               <h3 className="font-medium mb-2">Active Connections</h3>
               <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : latestMetrics?.activeConnections}
+                {connectionStatus === 'connecting' ? '-' : (
+                  <AnimatedNumber 
+                    value={latestMetrics?.activeConnections || 0} 
+                    decimals={0}
+                  />
+                )}
               </div>
             </Card>
           </div>
