@@ -34,7 +34,46 @@ export default function Dashboard() {
   const [settings, setSettings] = useState({
     realtime: true,
     interval: 5,
-    logAutoScroll: true
+    logAutoScroll: true,
+    // Notification Settings
+    notifications: {
+      enabled: true,
+      methods: {
+        inApp: true,
+        email: false,
+        sms: false
+      },
+      alertSound: 'default',
+      notifyOn: {
+        serviceDown: true,
+        serviceRecovered: true,
+        serviceRestarted: true,
+        slowService: false
+      }
+    },
+    // Email Settings
+    email: {
+      recipients: '',
+      subjectPrefix: '',
+      includeInBody: {
+        serviceName: true,
+        downSinceTime: true,
+        errorReason: true,
+        serverHostname: true
+      }
+    },
+    // Monitoring Thresholds
+    monitoring: {
+      retryAttempts: 3,
+      autoRestart: false,
+      gracePeriod: 10
+    },
+    // Log Settings
+    logs: {
+      saveToFile: false,
+      retentionPeriod: '7',
+      logLevel: 'info'
+    }
   })
   const [mounted, setMounted] = useState(false)
 
