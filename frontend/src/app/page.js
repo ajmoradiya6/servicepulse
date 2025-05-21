@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Bell, Settings, Moon, Sun, Activity, X, CheckCircle2, AlertCircle, AlertTriangle, PlayCircle } from 'lucide-react'
+import { Bell, Settings, Moon, Sun, Activity, X, CheckCircle2, AlertCircle, AlertTriangle, PlayCircle, Plus, Trash2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AnimatedNumber } from "@/components/ui/animated-number"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 // Dynamically import components that use client-side data
 const ServiceMetrics = dynamic(() => import('@/components/ui/charts/ServiceMetrics').then(mod => mod.ServiceMetrics), {
@@ -101,6 +104,17 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showAddService, setShowAddService] = useState(false)
+  const [newService, setNewService] = useState({
+    name: '',
+    url: '',
+    port: ''
+  })
+  const [services, setServices] = useState([
+    { id: 'service1', name: 'Authentication Service', status: 'running', url: 'https://auth.example.com', port: '3000' },
+    { id: 'service2', name: 'Payment Gateway', status: 'stopped', url: 'https://pay.example.com', port: '3001' },
+    { id: 'service3', name: 'Data Processing Service', status: 'running', url: 'https://data.example.com', port: '3002' }
+  ])
 
   // Always call the hook, but it will handle server/client rendering internally
   const { 
@@ -119,12 +133,6 @@ export default function Dashboard() {
   useEffect(() => {
     setMounted(true)
   }, [])
-
-  const services = [
-    { id: 'service1', name: 'Authentication Service', status: 'running' },
-    { id: 'service2', name: 'Payment Gateway', status: 'stopped' },
-    { id: 'service3', name: 'Data Processing Service', status: 'running' }
-  ]
 
   // Get the current service's status
   const currentService = services.find(s => s.id === selectedService)
@@ -240,6 +248,29 @@ export default function Dashboard() {
     }
   }, [serviceStatuses, latestMetrics, selectedService, isInitialized, isFirstLoad])
 
+  const handleAddService = () => {
+    if (newService.name && newService.url && newService.port) {
+      const serviceId = `service${services.length + 1}`
+      const newServiceData = {
+        id: serviceId,
+        name: newService.name,
+        status: 'running',
+        url: newService.url,
+        port: newService.port
+      }
+      setServices(prev => [...prev, newServiceData])
+      setNewService({ name: '', url: '', port: '' })
+      setShowAddService(false)
+    }
+  }
+
+  const handleDeleteService = (serviceId) => {
+    setServices(prev => prev.filter(service => service.id !== serviceId))
+    if (selectedService === serviceId) {
+      setSelectedService(services[0]?.id || '')
+    }
+  }
+
   // Prevent hydration issues by not rendering until mounted
   if (!mounted) {
     return (
@@ -256,24 +287,80 @@ export default function Dashboard() {
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
       <div className="w-64 border-r bg-card p-4 overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4">Services</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Services</h2>
+          <Dialog open={showAddService} onOpenChange={setShowAddService}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Service</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="service-name">Service Name</Label>
+                  <Input
+                    id="service-name"
+                    value={newService.name}
+                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                    placeholder="Enter service name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-url">Service URL</Label>
+                  <Input
+                    id="service-url"
+                    value={newService.url}
+                    onChange={(e) => setNewService({ ...newService, url: e.target.value })}
+                    placeholder="Enter domain or IP (e.g., asd.com or 192.168.1.56)"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="service-port">Port Number</Label>
+                  <Input
+                    id="service-port"
+                    value={newService.port}
+                    onChange={(e) => setNewService({ ...newService, port: e.target.value })}
+                    placeholder="Enter port number"
+                    type="number"
+                  />
+                </div>
+                <Button onClick={handleAddService} className="w-full">
+                  Add Service
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
         <div className="space-y-2">
           {services.map((service) => (
-            <Button
-              key={service.id}
-              variant={selectedService === service.id ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setSelectedService(service.id)}
-            >
-              <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 ${
-                selectedService === service.id && connectionStatus === 'connecting'
-                  ? 'bg-yellow-500 animate-pulse-scale'
-                  : serviceStatuses[service.id] === 'running'
-                  ? 'bg-green-500'
-                  : 'bg-red-500'
-              }`} />
-              {service.name}
-            </Button>
+            <div key={service.id} className="flex items-center group">
+              <Button
+                variant={selectedService === service.id ? "default" : "ghost"}
+                className="w-full justify-start flex-1"
+                onClick={() => setSelectedService(service.id)}
+              >
+                <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 ${
+                  selectedService === service.id && connectionStatus === 'connecting'
+                    ? 'bg-yellow-500 animate-pulse-scale'
+                    : serviceStatuses[service.id] === 'running'
+                    ? 'bg-green-500'
+                    : 'bg-red-500'
+                }`} />
+                {service.name}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleDeleteService(service.id)}
+              >
+                <Trash2 className="h-4 w-4 text-red-500" />
+              </Button>
+            </div>
           ))}
         </div>
       </div>
