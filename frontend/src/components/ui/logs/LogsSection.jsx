@@ -161,7 +161,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
               filteredLogs.map((log) => (
                 <div
                   key={log.id}
-                  className={`p-4 rounded-lg border ${getLogColor(log.level)} shadow-sm hover:shadow-md transition-shadow duration-200`}
+                  className={`p-4 rounded-lg border ${getLogColor(log.level)} hover:bg-muted/50 transition-colors duration-200`}
                 >
                   <div className="flex items-center gap-2">
                     <div className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${getTagColor(log.level)}`}>

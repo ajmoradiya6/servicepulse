@@ -48,9 +48,11 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
               {SECTIONS.map((section) => (
                 <button
                   key={section.key}
-                  className={`flex items-center w-full px-3 py-2 text-left transition-all duration-150 border-l-4 ${selectedSection === section.key
-                    ? 'bg-primary/10 border-primary font-semibold text-primary shadow-sm'
-                    : 'border-transparent hover:bg-muted hover:text-primary'} text-sm`}
+                  className={`flex items-center w-full px-3 py-2 text-left transition-all duration-150 rounded-md ${
+                    selectedSection === section.key
+                      ? 'bg-primary text-primary-foreground font-medium'
+                      : 'hover:bg-muted'
+                  } text-sm`}
                   onClick={() => setSelectedSection(section.key)}
                 >
                   {section.icon}
@@ -118,7 +120,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                   <div className="mb-4">
                     <Label className="text-base">Notification Methods</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="in-app"
                           checked={settings.notifications?.methods?.inApp}
@@ -126,7 +128,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="in-app">In-app</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="email"
                           checked={settings.notifications?.methods?.email}
@@ -134,7 +136,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="email">Email</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="sms"
                           checked={settings.notifications?.methods?.sms}
@@ -148,7 +150,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                   <div className="mb-4">
                     <Label className="text-base">Service Status Notifications</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="service-down"
                           checked={settings.notifications?.serviceStatus?.onStop}
@@ -156,7 +158,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="service-down">Service Down</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="service-error"
                           checked={settings.notifications?.serviceStatus?.onError}
@@ -164,7 +166,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="service-error">Service Error</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="service-restart"
                           checked={settings.notifications?.serviceStatus?.onRestart}
@@ -172,7 +174,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="service-restart">Service Restart</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="service-start"
                           checked={settings.notifications?.serviceStatus?.onStart}
@@ -186,7 +188,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                   <div className="mb-4">
                     <Label className="text-base">Resource Usage Notifications</Label>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="cpu-usage"
                           checked={settings.notifications?.resourceUsage?.cpu}
@@ -194,7 +196,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                         />
                         <Label htmlFor="cpu-usage">High CPU Usage</Label>
                       </div>
-                      <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                      <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                         <Checkbox
                           id="memory-usage"
                           checked={settings.notifications?.resourceUsage?.memory}
@@ -253,7 +255,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       <div>
                         <Label className="text-base">Include in Email Body</Label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                          <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <Checkbox
                               id="include-service-name"
                               checked={settings.email?.includeInBody?.serviceName}
@@ -261,7 +263,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                             />
                             <Label htmlFor="include-service-name">Service Name</Label>
                           </div>
-                          <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <Checkbox
                               id="include-down-time"
                               checked={settings.email?.includeInBody?.downSinceTime}
@@ -269,7 +271,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                             />
                             <Label htmlFor="include-down-time">Down Since Time</Label>
                           </div>
-                          <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <Checkbox
                               id="include-error-reason"
                               checked={settings.email?.includeInBody?.errorReason}
@@ -277,7 +279,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                             />
                             <Label htmlFor="include-error-reason">Error Reason</Label>
                           </div>
-                          <div className="flex items-center space-x-2 p-2 rounded-md bg-muted/50">
+                          <div className="flex items-center space-x-2 p-2 rounded-md hover:bg-muted/50 transition-colors">
                             <Checkbox
                               id="include-hostname"
                               checked={settings.email?.includeInBody?.serverHostname}
@@ -312,7 +314,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       onChange={(e) => updateSettings('monitoring.retryAttempts', parseInt(e.target.value))}
                     />
                   </div>
-                  <div className="flex items-center justify-between mb-4 p-2 rounded-md bg-muted/50">
+                  <div className="flex items-center justify-between mb-4 p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <div>
                       <Label htmlFor="auto-restart" className="text-base">Enable Auto-Restart</Label>
                       <p className="text-sm text-muted-foreground">Automatically restart services when they fail</p>
@@ -353,7 +355,7 @@ export function SettingsPanel({ open, onOpenChange, settings, onSettingsChange }
                       onCheckedChange={(checked) => onSettingsChange({ ...settings, logAutoScroll: checked })}
                     />
                   </div>
-                  <div className="flex items-center justify-between mb-4 p-2 rounded-md bg-muted/50">
+                  <div className="flex items-center justify-between mb-4 p-2 rounded-md hover:bg-muted/50 transition-colors">
                     <div>
                       <Label htmlFor="save-logs" className="text-base">Save Logs to File</Label>
                       <p className="text-sm text-muted-foreground">Store logs in a local file</p>
