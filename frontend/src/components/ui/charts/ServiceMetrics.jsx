@@ -41,49 +41,6 @@ export function ServiceMetrics({ data = [], status, serviceName }) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        <Card className="p-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium">CPU Usage</h3>
-            <Badge variant={chartData[chartData.length - 1]?.cpu > 80 ? "destructive" : "outline"}>
-              {chartData[chartData.length - 1]?.cpu?.toFixed(1)}%
-            </Badge>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium">Memory Usage</h3>
-            <Badge variant={chartData[chartData.length - 1]?.memory > 90 ? "destructive" : "outline"}>
-              {chartData[chartData.length - 1]?.memory?.toFixed(1)}%
-            </Badge>
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-medium">Network</h3>
-            <Badge variant="outline">
-              {(chartData[chartData.length - 1]?.network / 1000).toFixed(2)} MB/s
-            </Badge>
-          </div>
-        </Card>
-      </div>
-
-      {status === 'stopped' && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>
-            Service is currently down. Please check the logs for more information.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {status === 'error' && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>
-            Service is experiencing issues. Please check the logs for more information.
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Card className="p-4 flex-1 flex flex-col min-h-0">
         <h3 className="font-medium mb-4">Resource Usage Trend</h3>
         <div className="h-[250px]">
@@ -113,6 +70,22 @@ export function ServiceMetrics({ data = [], status, serviceName }) {
           </ResponsiveContainer>
         </div>
       </Card>
+
+      {status === 'stopped' && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            Service is currently down. Please check the logs for more information.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {status === 'error' && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            Service is experiencing issues. Please check the logs for more information.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }

@@ -639,7 +639,7 @@ export default function Dashboard() {
                 </Card>
                 <Card className="p-4">
                   <h3 className="font-medium mb-2">Memory Usage</h3>
-                  <div className="text-2xl font-bold">
+                  <div className={`text-2xl font-bold ${latestMetrics?.memory > 85 ? 'text-red-500' : ''}`}>
                     {connectionStatus === 'connecting' ? '-' : (
                       <AnimatedNumber 
                         value={latestMetrics?.memory || 0} 
@@ -651,7 +651,7 @@ export default function Dashboard() {
                 </Card>
                 <Card className="p-4">
                   <h3 className="font-medium mb-2">CPU Usage</h3>
-                  <div className="text-2xl font-bold">
+                  <div className={`text-2xl font-bold ${latestMetrics?.cpu > 80 ? 'text-red-500' : ''}`}>
                     {connectionStatus === 'connecting' ? '-' : (
                       <AnimatedNumber 
                         value={latestMetrics?.cpu || 0} 

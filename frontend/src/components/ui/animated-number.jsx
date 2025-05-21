@@ -22,7 +22,7 @@ function AnimatedDigit({ digit, isAnimating }) {
           }}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <span className={`transition-colors duration-300 ${isAnimating ? 'text-primary' : ''}`}>
+          <span>
             {digit}
           </span>
         </motion.div>
