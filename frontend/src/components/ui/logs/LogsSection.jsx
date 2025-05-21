@@ -152,7 +152,7 @@ export function LogsSection({ logs = [], autoScroll = true }) {
 
       <Card className="flex-1 flex flex-col min-h-0">
         <ScrollArea className="flex-1">
-          <div className="p-4 space-y-2">
+          <div className="p-4 space-y-2" style={{ maxHeight: 'calc(100vh - 380px)', overflowY: 'auto' }}>
             {filteredLogs.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No logs found

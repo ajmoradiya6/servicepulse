@@ -2,24 +2,33 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-export function useMetricsSocket(serviceId, settings) {
+export function useMetricsSocket(services, selectedServiceId, settings) {
   // All useState hooks must be called in the same order on every render
-  const [data, setData] = useState([])
+  const [data, setData] = useState([]) // Data for the selected service
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [error, setError] = useState(null)
-  const [latestMetrics, setLatestMetrics] = useState({})
-  const [logs, setLogs] = useState([])
-  const [serviceStatuses, setServiceStatuses] = useState({
-    service1: 'running',
-    service2: 'running',
-    service3: 'running'
-  })
+  const [latestMetrics, setLatestMetrics] = useState({}) // Metrics for the selected service
+  const [logs, setLogs] = useState([]) // Logs for the selected service
+  const [serviceStatuses, setServiceStatuses] = useState({}) // Status for ALL services
+  const [allLatestMetrics, setAllLatestMetrics] = useState({}) // Latest metrics for ALL services
+  const [allLogs, setAllLogs] = useState({}) // Logs for ALL services
+
   const [isInitialized, setIsInitialized] = useState(false)
   
   // Refs don't count in the hook order
   const serviceDataRef = useRef({})
   const isFirstLoad = useRef(true)
   const isClient = useRef(false)
+
+  // Initialize service statuses based on the provided services list
+  useEffect(() => {
+    if (!services || services.length === 0) return
+    const initialStatuses = {}
+    services.forEach(service => {
+      initialStatuses[service.id] = 'running' // Assume running initially
+    })
+    setServiceStatuses(initialStatuses)
+  }, [services]) // Re-run when the list of services changes
 
   const generateServiceStatus = useCallback((currentStatus) => {
     if (Math.random() > 0.95) {
@@ -28,8 +37,8 @@ export function useMetricsSocket(serviceId, settings) {
     return currentStatus
   }, [])
 
-  const getServiceRanges = useCallback((service) => {
-    switch(service) {
+  const getServiceRanges = useCallback((serviceId) => {
+    switch(serviceId) {
       case 'service1':
         return { cpu: [20, 40], memory: [30, 50], connections: [50, 150] }
       case 'service2':
@@ -37,11 +46,11 @@ export function useMetricsSocket(serviceId, settings) {
       case 'service3':
         return { cpu: [50, 90], memory: [70, 95], connections: [200, 500] }
       default:
-        return { cpu: [30, 50], memory: [40, 60], connections: [100, 200] }
+        return { cpu: [35, 55], memory: [45, 65], connections: [80, 180] }
     }
   }, [])
 
-  const generateMetrics = useCallback(() => {
+  const generateMetrics = useCallback((serviceId) => {
     const ranges = getServiceRanges(serviceId)
     const getRandom = (min, max) => min + Math.random() * (max - min)
 
@@ -53,14 +62,14 @@ export function useMetricsSocket(serviceId, settings) {
       network: Math.random() * 1000,
       activeConnections: Math.floor(getRandom(...ranges.connections))
     }
-  }, [serviceId, getServiceRanges])
+  }, [getServiceRanges])
 
-  const generateLog = useCallback(() => ({
+  const generateLog = useCallback((serviceId) => ({
     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     timestamp: new Date().toISOString(),
     level: ['info', 'warning', 'error'][Math.floor(Math.random() * 3)],
     message: `Service ${serviceId} ${Math.random() > 0.5 ? 'running normally' : 'processing requests'}`
-  }), [serviceId])
+  }), [])
 
   // Initialize client-side functionality
   useEffect(() => {
@@ -68,9 +77,9 @@ export function useMetricsSocket(serviceId, settings) {
     setIsInitialized(true)
   }, [])
 
-  // Reset connection status when switching services
+  // Reset connection status when switching services (now based on selectedServiceId)
   useEffect(() => {
-    if (!isInitialized) return
+    if (!isInitialized || !selectedServiceId) return
     
     setConnectionStatus('connecting')
     
@@ -81,64 +90,86 @@ export function useMetricsSocket(serviceId, settings) {
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [serviceId, isInitialized])
+  }, [selectedServiceId, isInitialized])
 
-  // Update service statuses periodically
+  // Update service statuses periodically for ALL services
   useEffect(() => {
-    if (!isInitialized) return
+    if (!isInitialized || !services || services.length === 0) return
     
     const updateStatuses = () => {
-      setServiceStatuses(prev => ({
-        service1: generateServiceStatus(prev.service1),
-        service2: generateServiceStatus(prev.service2),
-        service3: generateServiceStatus(prev.service3)
-      }))
+      setServiceStatuses(prev => {
+        const newStatuses = { ...prev }
+        services.forEach(service => {
+          if (prev[service.id] !== undefined) {
+            newStatuses[service.id] = generateServiceStatus(prev[service.id])
+          } else {
+            newStatuses[service.id] = 'running'
+          }
+        })
+        Object.keys(newStatuses).forEach(serviceId => {
+          if (!services.find(service => service.id === serviceId)) {
+            delete newStatuses[serviceId]
+          }
+        })
+        return newStatuses
+      })
     }
 
     const interval = setInterval(updateStatuses, 10000)
     return () => clearInterval(interval)
-  }, [generateServiceStatus, isInitialized])
+  }, [generateServiceStatus, isInitialized, services])
 
-  // Main update effect - only run on client side
+  // Main update effect - generate and store data/logs for ALL services
   useEffect(() => {
-    if (!isInitialized) return
+    if (!isInitialized || !services || services.length === 0 || Object.keys(serviceStatuses).length === 0) return
     
     let interval
     
     const updateData = () => {
-      const newMetrics = generateMetrics()
-      const newLog = generateLog()
-      
-      serviceDataRef.current[serviceId] = {
-        metrics: [
-          ...(serviceDataRef.current[serviceId]?.metrics || []),
-          newMetrics
-        ].slice(-50),
-        logs: [
-          ...(serviceDataRef.current[serviceId]?.logs || []),
-          newLog
-        ].slice(-100)
-      }
+      const currentServiceData = { ...serviceDataRef.current }
+      const latestMetricsForAll = {}
+      const logsForAll = {}
 
-      setLatestMetrics(newMetrics)
-      setLogs(serviceDataRef.current[serviceId].logs)
-      setData(serviceDataRef.current[serviceId].metrics)
+      services.forEach(service => {
+        const newMetrics = generateMetrics(service.id)
+        const newLog = generateLog(service.id)
+        
+        currentServiceData[service.id] = {
+          metrics: [
+            ...(currentServiceData[service.id]?.metrics || []),
+            newMetrics
+          ].slice(-50),
+          logs: [
+            ...(currentServiceData[service.id]?.logs || []),
+            newLog
+          ].slice(-100)
+        }
+        latestMetricsForAll[service.id] = newMetrics
+        logsForAll[service.id] = currentServiceData[service.id].logs
 
-      // Add service-specific logs based on status changes
-      if (serviceStatuses[serviceId] === 'stopped') {
-        setLogs(prev => [{
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          timestamp: new Date().toISOString(),
-          level: 'error',
-          message: `Service ${serviceId} is not responding`
-        }, ...prev])
+        if (serviceStatuses[service.id] === 'stopped') {
+          // Add a specific log entry for stopped status
+          // The notification in page.js should pick this up
+        } else if (serviceStatuses[service.id] === 'error') {
+          // Add a specific log entry for error status
+          // The notification in page.js should pick this up
+        }
+
+      })
+
+      serviceDataRef.current = currentServiceData
+      setAllLatestMetrics(latestMetricsForAll)
+      setAllLogs(logsForAll)
+
+      if (selectedServiceId) {
+        setData(serviceDataRef.current[selectedServiceId]?.metrics || [])
+        setLatestMetrics(serviceDataRef.current[selectedServiceId]?.metrics?.[serviceDataRef.current[selectedServiceId]?.metrics.length - 1] || {})
+        setLogs(serviceDataRef.current[selectedServiceId]?.logs || [])
       }
     }
 
-    // Initial update
     updateData()
 
-    // Set up interval if realtime is enabled
     if (settings.realtime) {
       interval = setInterval(updateData, settings.interval * 1000)
     }
@@ -146,16 +177,17 @@ export function useMetricsSocket(serviceId, settings) {
     return () => {
       if (interval) clearInterval(interval)
     }
-  }, [serviceId, settings.realtime, settings.interval, generateMetrics, generateLog, serviceStatuses, isInitialized])
+  }, [isInitialized, services, serviceStatuses, selectedServiceId, settings.realtime, settings.interval, generateMetrics, generateLog])
 
   return { 
-    data, 
+    data,
     connectionStatus,
-    serviceStatus: serviceStatuses[serviceId],
     error,
     latestMetrics,
     logs,
     serviceStatuses,
+    allLatestMetrics,
+    allLogs,
     isFirstLoad: isFirstLoad.current,
     isInitialized
   }

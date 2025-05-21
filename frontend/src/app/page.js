@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { Bell, Settings, Moon, Sun, Activity, X, CheckCircle2, AlertCircle, AlertTriangle, PlayCircle, Plus, Trash2 } from 'lucide-react'
+import { Bell, Settings, Moon, Sun, Activity, X, CheckCircle2, AlertCircle, AlertTriangle, PlayCircle, Plus, Trash2, MoreVertical, Pencil } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -13,6 +13,7 @@ import { useMetricsSocket } from "@/hooks/use-metrics-socket"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
@@ -21,6 +22,7 @@ import { AnimatedNumber } from "@/components/ui/animated-number"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
 
 // Dynamically import components that use client-side data
 const ServiceMetrics = dynamic(() => import('@/components/ui/charts/ServiceMetrics').then(mod => mod.ServiceMetrics), {
@@ -115,19 +117,23 @@ export default function Dashboard() {
     { id: 'service2', name: 'Payment Gateway', status: 'stopped', url: 'https://pay.example.com', port: '3001' },
     { id: 'service3', name: 'Data Processing Service', status: 'running', url: 'https://data.example.com', port: '3002' }
   ])
+  const [editingService, setEditingService] = useState(null)
+  const [renamingService, setRenamingService] = useState(null)
+  const [newServiceName, setNewServiceName] = useState('')
 
   // Always call the hook, but it will handle server/client rendering internally
   const { 
     data: realtimeData, 
     connectionStatus,
-    serviceStatus,
     error: socketError,
     latestMetrics,
     logs,
     serviceStatuses,
     isFirstLoad,
-    isInitialized
-  } = useMetricsSocket(selectedService, settings)
+    isInitialized,
+    allLatestMetrics,
+    allLogs
+  } = useMetricsSocket(services, selectedService, settings)
 
   // Set mounted state after component mounts
   useEffect(() => {
@@ -201,27 +207,23 @@ export default function Dashboard() {
     }
   }
 
-  // Update the useEffect to include resource usage checks
+  // Update the useEffect to include service status changes and resource usage checks for all services
   useEffect(() => {
     if (!isInitialized || isFirstLoad) return
 
-    // Check for service status changes
-    Object.entries(serviceStatuses).forEach(([serviceId, status]) => {
-      const service = services.find(s => s.id === serviceId)
-      if (!service) return
+    // Check for service status changes for ALL services
+    services.forEach(service => {
+      const status = serviceStatuses[service.id]
+      if (!status) return // Skip if status is not yet available for this service
+
+      // You might want to compare with previous status to only notify on *changes*
+      // For simplicity, we'll notify whenever status is stopped or error
 
       if (status === 'stopped' && settings.notifications?.serviceStatus?.onStop) {
         addNotification({
           type: 'error',
           title: 'Service Stopped',
           message: `${service.name} has stopped running`,
-          service: service.name
-        })
-      } else if (status === 'running' && settings.notifications?.serviceStatus?.onStart) {
-        addNotification({
-          type: 'success',
-          title: 'Service Started',
-          message: `${service.name} is now running`,
           service: service.name
         })
       } else if (status === 'error' && settings.notifications?.serviceStatus?.onError) {
@@ -231,36 +233,74 @@ export default function Dashboard() {
           message: `${service.name} encountered an error`,
           service: service.name
         })
-      } else if (status === 'restarting' && settings.notifications?.serviceStatus?.onRestart) {
-        addNotification({
-          type: 'warning',
-          title: 'Service Restarting',
-          message: `${service.name} is restarting`,
-          service: service.name
-        })
       }
     })
 
-    // Check resource usage only for the selected service
-    const currentService = services.find(s => s.id === selectedService)
-    if (currentService && serviceStatuses[selectedService] === 'running' && latestMetrics) {
-      checkResourceUsage(latestMetrics, currentService)
+    // Check resource usage for ALL running services
+    services.forEach(service => {
+      const status = serviceStatuses[service.id]
+      const metrics = allLatestMetrics[service.id]
+
+      if (status === 'running' && metrics) {
+        checkResourceUsage(metrics, service)
+      }
+    })
+
+  }, [serviceStatuses, allLatestMetrics, services, isInitialized, isFirstLoad, settings.notifications])
+
+  const handleRenameService = (serviceId) => {
+    const service = services.find(s => s.id === serviceId)
+    setNewServiceName(service.name)
+    setRenamingService(serviceId)
+  }
+
+  const handleSaveRename = (serviceId) => {
+    if (newServiceName.trim()) {
+      setServices(prev => prev.map(service => 
+        service.id === serviceId 
+          ? { ...service, name: newServiceName.trim() }
+          : service
+      ))
     }
-  }, [serviceStatuses, latestMetrics, selectedService, isInitialized, isFirstLoad])
+    setRenamingService(null)
+  }
+
+  const handleEditService = (serviceId) => {
+    const service = services.find(s => s.id === serviceId)
+    setNewService({
+      name: service.name,
+      url: service.url,
+      port: service.port
+    })
+    setEditingService(serviceId)
+    setShowAddService(true)
+  }
 
   const handleAddService = () => {
     if (newService.name && newService.url && newService.port) {
-      const serviceId = `service${services.length + 1}`
-      const newServiceData = {
-        id: serviceId,
-        name: newService.name,
-        status: 'running',
-        url: newService.url,
-        port: newService.port
+      if (editingService) {
+        setServices(prev => prev.map(service => 
+          service.id === editingService
+            ? { ...service, name: newService.name, url: newService.url, port: newService.port }
+            : service
+        ))
+        setEditingService(null)
+        setRenamingService(null)
+      } else {
+        const serviceId = `service${services.length + 1}`
+        const newServiceData = {
+          id: serviceId,
+          name: newService.name,
+          status: 'running',
+          url: newService.url,
+          port: newService.port
+        }
+        setServices(prev => [...prev, newServiceData])
       }
-      setServices(prev => [...prev, newServiceData])
       setNewService({ name: '', url: '', port: '' })
       setShowAddService(false)
+      setEditingService(null)
+      setRenamingService(null)
     }
   }
 
@@ -286,292 +326,374 @@ export default function Dashboard() {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 border-r bg-card p-4 overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Services</h2>
-          <Dialog open={showAddService} onOpenChange={setShowAddService}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Service</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="service-name">Service Name</Label>
-                  <Input
-                    id="service-name"
-                    value={newService.name}
-                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                    placeholder="Enter service name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="service-url">Service URL</Label>
-                  <Input
-                    id="service-url"
-                    value={newService.url}
-                    onChange={(e) => setNewService({ ...newService, url: e.target.value })}
-                    placeholder="Enter domain or IP (e.g., asd.com or 192.168.1.56)"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="service-port">Port Number</Label>
-                  <Input
-                    id="service-port"
-                    value={newService.port}
-                    onChange={(e) => setNewService({ ...newService, port: e.target.value })}
-                    placeholder="Enter port number"
-                    type="number"
-                  />
-                </div>
-                <Button onClick={handleAddService} className="w-full">
-                  Add Service
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="space-y-2">
-          {services.map((service) => (
-            <div key={service.id} className="flex items-center group">
-              <Button
-                variant={selectedService === service.id ? "default" : "ghost"}
-                className="w-full justify-start flex-1"
-                onClick={() => setSelectedService(service.id)}
-              >
-                <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 ${
-                  selectedService === service.id && connectionStatus === 'connecting'
-                    ? 'bg-yellow-500 animate-pulse-scale'
-                    : serviceStatuses[service.id] === 'running'
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
-                }`} />
-                {service.name}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleDeleteService(service.id)}
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="border-b bg-card p-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">Service Health Monitor</h1>
-            <div className="flex items-center gap-4">
-              {/* Connection Status Badge */}
-              <Badge 
-                variant="outline" 
-                className={`${
-                  connectionStatus === 'connecting' 
-                    ? 'bg-yellow-500/10 text-yellow-500'
-                    : 'bg-green-500/10 text-green-500'
-                }`}
-              >
-                <Activity className="w-4 h-4 mr-2" />
-                {connectionStatus === 'connecting' ? 'Connecting' : 'Live'}
-              </Badge>
-
-              {/* Notifications Dropdown */}
-              <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-5 w-5" />
-                    {notifications.length > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
-                        {notifications.length}
-                      </span>
-                    )}
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={20} minSize={10} maxSize={50} className="flex-shrink-0">
+          <div className="w-full h-full border-r bg-card p-4 overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Services</h2>
+              <Dialog open={showAddService} onOpenChange={(open) => {
+                setShowAddService(open)
+                if (!open) setEditingService(null)
+              }}>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Plus className="h-4 w-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80">
-                  <div className="flex items-center justify-between p-2">
-                    <h4 className="font-medium">Notifications</h4>
-                    {notifications.length > 0 && (
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{editingService ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="service-name">Service Name</Label>
+                      <Input
+                        id="service-name"
+                        value={newService.name}
+                        onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+                        placeholder="Enter service name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="service-url">Service URL</Label>
+                      <Input
+                        id="service-url"
+                        value={newService.url}
+                        onChange={(e) => setNewService({ ...newService, url: e.target.value })}
+                        placeholder="Enter domain or IP (e.g., asd.com or 192.168.1.56)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="service-port">Port Number</Label>
+                      <Input
+                        id="service-port"
+                        value={newService.port}
+                        onChange={(e) => setNewService({ ...newService, port: e.target.value })}
+                        placeholder="Enter port number"
+                        type="number"
+                      />
+                    </div>
+                    <Button onClick={handleAddService} className="w-full">
+                      {editingService ? 'Save Changes' : 'Add Service'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <div className="space-y-2">
+              {services.map((service) => (
+                <div key={service.id} className="flex items-center group w-full rounded hover:bg-muted/30 transition min-h-[36px] pr-2">
+                  {renamingService === service.id ? (
+                    <div className="flex items-center flex-1 px-2 py-2" style={{ minHeight: 36 }}>
+                      <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 flex-shrink-0 ${
+                        selectedService === service.id && connectionStatus === 'connecting'
+                          ? 'bg-yellow-500 animate-pulse-scale'
+                          : serviceStatuses[service.id] === 'running'
+                          ? 'bg-green-500'
+                          : 'bg-red-500'
+                      }`} />
+                      <Input
+                        value={newServiceName}
+                        onChange={(e) => setNewServiceName(e.target.value)}
+                        onBlur={() => {
+                          setTimeout(() => {
+                            handleSaveRename(service.id)
+                            setRenamingService(null)
+                            setEditingService(null)
+                          }, 100)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            handleSaveRename(service.id)
+                            setTimeout(() => {
+                              setRenamingService(null)
+                              setEditingService(null)
+                            }, 100)
+                          }
+                          if (e.key === 'Escape') {
+                            setTimeout(() => {
+                              setRenamingService(null)
+                              setEditingService(null)
+                            }, 100)
+                          }
+                        }}
+                        className="h-6 py-0 flex-1 px-2"
+                        autoFocus
+                        style={{ minWidth: 0 }}
+                      />
+                    </div>
+                  ) : (
+                    <Button
+                      variant={selectedService === service.id ? "default" : "ghost"}
+                      className="w-full justify-start flex-1 px-2 py-2 rounded text-left overflow-hidden flex items-center"
+                      onClick={() => {
+                        setSelectedService(service.id)
+                        setRenamingService(null)
+                        setEditingService(null)
+                      }}
+                      style={{ minHeight: 36 }}
+                      disabled={!!renamingService || !!editingService}
+                    >
+                      <div className={`w-2 h-2 rounded-full mr-2 transition-colors duration-300 flex-shrink-0 ${
+                        selectedService === service.id && connectionStatus === 'connecting'
+                          ? 'bg-yellow-500 animate-pulse-scale'
+                          : serviceStatuses[service.id] === 'running'
+                          ? 'bg-green-500'
+                          : 'bg-red-500'
+                      }`} />
+                      <span
+                        className="truncate block flex-1"
+                        title={service.name}
+                      >
+                        {service.name}
+                      </span>
+                    </Button>
+                  )}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs"
-                        onClick={clearNotifications}
+                        size="icon"
+                        className="h-8 w-8 rounded-full flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/60 focus:bg-muted/60 ml-auto"
+                        tabIndex={0}
+                        aria-label="Service options"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        Clear all
+                        <MoreVertical className="h-5 w-5 text-muted-foreground group-hover:text-current" />
                       </Button>
-                    )}
-                  </div>
-                  <DropdownMenuSeparator />
-                  <ScrollArea className="h-[300px]">
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        No notifications
-                      </div>
-                    ) : (
-                      <div className="p-2">
-                        {notifications.map((notification) => {
-                          const getIcon = () => {
-                            switch (notification.type) {
-                              case 'success':
-                                return <CheckCircle2 className="h-5 w-5 text-green-500" />
-                              case 'error':
-                                return <AlertCircle className="h-5 w-5 text-red-500" />
-                              case 'warning':
-                                return <AlertTriangle className="h-5 w-5 text-yellow-500" />
-                              default:
-                                return <PlayCircle className="h-5 w-5 text-blue-500" />
-                            }
-                          }
-
-                          const getBorderColor = () => {
-                            switch (notification.type) {
-                              case 'success':
-                                return 'border-green-500/20 bg-green-500/5'
-                              case 'error':
-                                return 'border-red-500/20 bg-red-500/5'
-                              case 'warning':
-                                return 'border-yellow-500/20 bg-yellow-500/5'
-                              default:
-                                return 'border-blue-500/20 bg-blue-500/5'
-                            }
-                          }
-
-                          return (
-                            <div
-                              key={notification.id}
-                              className={`p-3 rounded-lg mb-2 border ${getBorderColor()}`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5">
-                                  {getIcon()}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium text-sm">{notification.title}</span>
-                                      {notification.service && (
-                                        <Badge variant="outline" className="text-xs font-normal">
-                                          {notification.service}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-6 w-6 -mt-1 -mr-1"
-                                      onClick={() => removeNotification(notification.id)}
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {notification.message}
-                                  </p>
-                                  <span className="text-xs text-muted-foreground mt-2 block">
-                                    {new Date(notification.timestamp).toLocaleTimeString()}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
-                <Settings className="h-5 w-5" />
-              </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleRenameService(service.id)}>
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteService(service.id)}
+                        className="text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              ))}
             </div>
           </div>
+        </ResizablePanel>
+        <ResizableHandle withHandle />
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Status</h3>
-              <div className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2 ${
-                  connectionStatus === 'connecting'
-                    ? 'bg-yellow-500'
-                    : serviceStatuses[selectedService] === 'running'
-                    ? 'bg-green-500'
-                    : 'bg-red-500'
-                }`} />
-                {connectionStatus === 'connecting' 
-                  ? 'Connecting' 
-                  : serviceStatuses[selectedService] === 'running' 
-                  ? 'Running' 
-                  : 'Stopped'}
+        {/* Main Content */}
+        <ResizablePanel defaultSize={80}>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <header className="border-b bg-card p-4">
+              <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">Service Health Monitor</h1>
+                <div className="flex items-center gap-4">
+                  {/* Connection Status Badge */}
+                  <Badge 
+                    variant="outline" 
+                    className={`${
+                      connectionStatus === 'connecting' 
+                        ? 'bg-yellow-500/10 text-yellow-500'
+                        : 'bg-green-500/10 text-green-500'
+                    }`}
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    {connectionStatus === 'connecting' ? 'Connecting' : 'Live'}
+                  </Badge>
+
+                  {/* Notifications Dropdown */}
+                  <DropdownMenu open={showNotifications} onOpenChange={setShowNotifications}>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="relative">
+                        <Bell className="h-5 w-5" />
+                        {notifications.length > 0 && (
+                          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] font-medium text-white flex items-center justify-center">
+                            {notifications.length}
+                          </span>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-80">
+                      <div className="flex items-center justify-between p-2">
+                        <h4 className="font-medium">Notifications</h4>
+                        {notifications.length > 0 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 text-xs"
+                            onClick={clearNotifications}
+                          >
+                            Clear all
+                          </Button>
+                        )}
+                      </div>
+                      <DropdownMenuSeparator />
+                      <ScrollArea className="h-[300px]">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-muted-foreground">
+                            No notifications
+                          </div>
+                        ) : (
+                          <div className="p-2">
+                            {notifications.map((notification) => {
+                              const getIcon = () => {
+                                switch (notification.type) {
+                                  case 'success':
+                                    return <CheckCircle2 className="h-5 w-5 text-green-500" />
+                                  case 'error':
+                                    return <AlertCircle className="h-5 w-5 text-red-500" />
+                                  case 'warning':
+                                    return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                                  default:
+                                    return <PlayCircle className="h-5 w-5 text-blue-500" />
+                                }
+                              }
+
+                              const getBorderColor = () => {
+                                switch (notification.type) {
+                                  case 'success':
+                                    return 'border-green-500/20 bg-green-500/5'
+                                  case 'error':
+                                    return 'border-red-500/20 bg-red-500/5'
+                                  case 'warning':
+                                    return 'border-yellow-500/20 bg-yellow-500/5'
+                                  default:
+                                    return 'border-blue-500/20 bg-blue-500/5'
+                                }
+                              }
+
+                              return (
+                                <div
+                                  key={notification.id}
+                                  className={`p-3 rounded-lg mb-2 border ${getBorderColor()}`}
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">
+                                      {getIcon()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium text-sm">{notification.title}</span>
+                                          {notification.service && (
+                                            <Badge variant="outline" className="text-xs font-normal">
+                                              {notification.service}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-6 w-6 -mt-1 -mr-1"
+                                          onClick={() => removeNotification(notification.id)}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {notification.message}
+                                      </p>
+                                      <span className="text-xs text-muted-foreground mt-2 block">
+                                        {new Date(notification.timestamp).toLocaleTimeString()}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </ScrollArea>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)}>
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Memory Usage</h3>
-              <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : (
-                  <AnimatedNumber 
-                    value={latestMetrics?.memory || 0} 
-                    suffix="%" 
-                    decimals={1}
-                  />
-                )}
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Status</h3>
+                  <div className="flex items-center">
+                    <div className={`w-3 h-3 rounded-full mr-2 ${
+                      connectionStatus === 'connecting'
+                        ? 'bg-yellow-500'
+                        : serviceStatuses[selectedService] === 'running'
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                    }`} />
+                    {connectionStatus === 'connecting' 
+                      ? 'Connecting' 
+                      : serviceStatuses[selectedService] === 'running' 
+                      ? 'Running' 
+                      : 'Stopped'}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Memory Usage</h3>
+                  <div className="text-2xl font-bold">
+                    {connectionStatus === 'connecting' ? '-' : (
+                      <AnimatedNumber 
+                        value={latestMetrics?.memory || 0} 
+                        suffix="%" 
+                        decimals={1}
+                      />
+                    )}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">CPU Usage</h3>
+                  <div className="text-2xl font-bold">
+                    {connectionStatus === 'connecting' ? '-' : (
+                      <AnimatedNumber 
+                        value={latestMetrics?.cpu || 0} 
+                        suffix="%" 
+                        decimals={1}
+                      />
+                    )}
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <h3 className="font-medium mb-2">Active Connections</h3>
+                  <div className="text-2xl font-bold">
+                    {connectionStatus === 'connecting' ? '-' : (
+                      <AnimatedNumber 
+                        value={latestMetrics?.activeConnections || 0} 
+                        decimals={0}
+                      />
+                    )}
+                  </div>
+                </Card>
               </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">CPU Usage</h3>
-              <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : (
-                  <AnimatedNumber 
-                    value={latestMetrics?.cpu || 0} 
-                    suffix="%" 
-                    decimals={1}
-                  />
-                )}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <h3 className="font-medium mb-2">Active Connections</h3>
-              <div className="text-2xl font-bold">
-                {connectionStatus === 'connecting' ? '-' : (
-                  <AnimatedNumber 
-                    value={latestMetrics?.activeConnections || 0} 
-                    decimals={0}
-                  />
-                )}
-              </div>
-            </Card>
+            </header>
+
+            <div className="flex-1 p-6 overflow-hidden">
+              <Tabs defaultValue="metrics" className="h-full flex flex-col">
+                <TabsList className="w-full grid grid-cols-2">
+                  <TabsTrigger value="metrics" className="w-full">Metrics</TabsTrigger>
+                  <TabsTrigger value="logs" className="w-full">Logs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="metrics" className="flex-1 overflow-hidden mt-4">
+                  <ServiceMetrics data={realtimeData} status={connectionStatus} />
+                </TabsContent>
+
+                <TabsContent value="logs" className="flex-1 overflow-hidden mt-4">
+                  <LogsSection logs={logs} autoScroll={settings.logAutoScroll} />
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
-        </header>
-
-        <div className="flex-1 p-6 overflow-hidden">
-          <Tabs defaultValue="metrics" className="h-full flex flex-col">
-            <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="metrics" className="w-full">Metrics</TabsTrigger>
-              <TabsTrigger value="logs" className="w-full">Logs</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="metrics" className="flex-1 overflow-hidden mt-4">
-              <ServiceMetrics data={realtimeData} status={connectionStatus} />
-            </TabsContent>
-
-            <TabsContent value="logs" className="flex-1 overflow-hidden mt-4">
-              <LogsSection logs={logs} autoScroll={settings.logAutoScroll} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       <SettingsPanel 
         open={settingsOpen} 
