@@ -113,9 +113,9 @@ export default function Dashboard() {
     port: ''
   })
   const [services, setServices] = useState([
-    { id: 'service1', name: 'Authentication Service', status: 'running', url: 'https://auth.example.com', port: '3000' },
-    { id: 'service2', name: 'Payment Gateway', status: 'stopped', url: 'https://pay.example.com', port: '3001' },
-    { id: 'service3', name: 'Data Processing Service', status: 'running', url: 'https://data.example.com', port: '3002' }
+    { id: 'service1', name: 'Akshay File Manager Long Name To Check Width', status: 'running', url: 'https://auth.example.com', port: '3000' },
+    { id: 'service2', name: 'Akshay PDF Viewer', status: 'stopped', url: 'https://pay.example.com', port: '3001' },
+    { id: 'service3', name: 'Akshay Document Viewer', status: 'running', url: 'https://data.example.com', port: '3002' }
   ])
   const [editingService, setEditingService] = useState(null)
   const [renamingService, setRenamingService] = useState(null)
